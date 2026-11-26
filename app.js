@@ -623,6 +623,7 @@ function menuGomb(cel, ikonNev, cim, leiras, fo = false) {
 
 function fomenu() {
   const tudod = tudodSzam();
+  const tudodEdes = tudodSzam(true);
   app.innerHTML = `
     <div class="menu">
       <div class="menu-fej">
@@ -633,7 +634,7 @@ function fomenu() {
       <nav class="menu-gombok" aria-label="Főmenü">
         ${menuGomb('#/itthon', 'cooking-pot', 'Mit főzzek?', tudod ? `${tudod} receptet meg tudsz főzni` : 'Pipáld be, mi van itthon', true)}
         ${menuGomb('#/receptjeim', 'book-open-text', 'Családi receptek', sajatReceptek.length ? `${sajatReceptek.length} elmentett recept` : 'Linkből, képről vagy kézzel')}
-        ${menuGomb('#/edessegek', 'cake', 'Édességek', 'Sütik, desszertek')}
+        ${menuGomb('#/edessegek', 'cake', 'Édességek', tudodEdes ? `${tudodEdes} édességet meg tudsz csinálni` : 'Sütik, desszertek')}
         ${menuGomb('#/tapanyag', 'chart-bar', 'Tápértékek', 'Fehérje, kalória, zsír')}
       </nav>
       <button class="halk-link" data-ugras="#/beallitasok">${ikon('gear-six')} ${csalad ? `Család és beállítások (${esc(csalad.nev)})` : 'Család és beállítások'}</button>
@@ -695,8 +696,17 @@ function beallitasokOldal() {
       <h1>Család és beállítások</h1>
       <h2>Közös családi receptkönyv</h2>
       <p>Ha összekötöd a család telefonjait, amit bárki hozzáad, mindenkinél megjelenik.</p>
-      <p class="tipp">A legegyszerűbb: nyisd meg ezen a telefonon a meghívó linket, amit valaki a családból küldött. Vagy írd be a családi kódot:</p>
-      ${csatlakozoUrlap('')}
+      ${csatlakozasHiba ? `<p class="uzenet hiba-uzenet">${esc(csatlakozasHiba)}</p>` : ''}
+      <label class="cimke" for="c-nev">Hogy hívnak?</label>
+      <input id="c-nev" class="mezo" autocomplete="given-name" placeholder="pl. Mama, Anna" value="${esc(nevPiszkozat)}">
+      <h2>Új család</h2>
+      <p class="tipp">Ha még senki nem indította el a család receptkönyvét, indítsd el te. Utána egy linket küldesz a többieknek.</p>
+      <button class="nagy-gomb kozepen" data-csalad-uj>${ikon('plus')}<span class="gomb-szoveg">Új családot indítok</span></button>
+      <h2>Már van családi kódod?</h2>
+      <p class="tipp">A legegyszerűbb: nyisd meg ezen a telefonon a meghívó linket, amit valaki a családból küldött. Vagy írd be a kódot:</p>
+      <label class="cimke" for="c-kod">Családi kód</label>
+      <input id="c-kod" class="mezo" autocomplete="off" autocapitalize="none" spellcheck="false">
+      <button class="nagy-gomb kozepen" data-csatlakozas>${ikon('users-three')}<span class="gomb-szoveg">Csatlakozom</span></button>
       ${mentesResz()}`;
     return;
   }
@@ -720,7 +730,10 @@ function beallitasokOldal() {
     <p class="tipp">A meghívó linket a család többi tagjának küldd el. Aki megnyitja, csatlakozik a közös receptkönyvhöz.</p>
     <h2>Mi változott?</h2>
     ${naplo}
-    ${mentesResz()}`;
+    ${mentesResz()}
+    <h2>Kilépés</h2>
+    <p class="tipp">Ha kilépsz, a receptek ezen a telefonon maradnak, de nem frissülnek többé. A meghívó linkkel bármikor visszaléphetsz.</p>
+    <button class="halk-gomb balra veszely" data-kilepes>${ikon('x')} Kilépés a családból</button>`;
   if (!naploAdat) naploBetolt();
 }
 
@@ -744,6 +757,7 @@ function mentesResz() {
 }
 
 let csatlakozasHiba = '';
+let nevPiszkozat = '';
 
 function csatlakozoUrlap(kod) {
   return `
@@ -765,13 +779,20 @@ function csatlakozasOldal(kod) {
     ${csatlakozoUrlap(kod)}`;
 }
 
-async function csatlakozas(gomb) {
-  const kod = (document.getElementById('c-kod')?.value || '').trim();
+async function csatlakozas(gomb, uj = false) {
+  let kod = (document.getElementById('c-kod')?.value || '').trim().toLowerCase();
   const nev = (document.getElementById('c-nev')?.value || '').trim();
-  if (!kod || !nev) { csatlakozasHiba = !kod ? 'Írd be a családi kódot.' : 'Írd be a neved, hogy lássák, ki mit tett hozzá.'; return rajzolMarad(); }
+  nevPiszkozat = nev;
+  if (!nev) { csatlakozasHiba = 'Írd be a neved, hogy lássák, ki mit tett hozzá.'; return rajzolMarad(); }
+  if (!uj && !kod) { csatlakozasHiba = 'Írd be a családi kódot.'; return rajzolMarad(); }
   if (!navigator.onLine) { csatlakozasHiba = 'Ehhez internet kell.'; return rajzolMarad(); }
   gomb.disabled = true;
   try {
+    if (uj) {
+      const v = await fetch(OLVASO_URL + 'csalad-uj', { method: 'POST' });
+      if (!v.ok) throw new Error();
+      kod = (await v.json()).kod;
+    }
     const v = await fetch(OLVASO_URL + 'szinkron', {
       method: 'POST', headers: { 'content-type': 'application/json', 'x-csalad': kod }, body: JSON.stringify({ nev, ota: 0, valtozasok: [] }),
     });
@@ -787,7 +808,7 @@ async function csatlakozas(gomb) {
   localStorage.setItem(OTA_KULCS, '0');
   mindentJelol();
   await szinkronizal();
-  location.replace('#/receptjeim');
+  location.replace(uj ? '#/beallitasok' : '#/receptjeim');
 }
 
 // Camera + gallery buttons. "cel" says where the photo goes: kezi, import, or recept:<id>.
@@ -805,32 +826,50 @@ function kepValaszto(cel, kepUrl, elonezettel) {
     </div>`;
 }
 
-function itthonOldal() {
-  const tudod = tudodSzam();
-  const csoportok = adat.kategoriak.map((kat) => {
-    const csempek = adat.hozzavalok
-      .filter((h) => h.kat === kat.id && !h.alap)
+// Which ingredients belong on a picker: the ones its recipes use (sweet or savoury), so the dessert
+// picker shows flour, sugar and cocoa, not meat and onions. Ones no recipe uses yet stay on the main picker.
+function relevansHozzavalok(edes) {
+  const ide = new Set();
+  const mashova = new Set();
+  for (const r of osszesRecept()) {
+    for (const h of r.hozzavalok || []) if (h.id) (!r.edes === !edes ? ide : mashova).add(h.id);
+  }
+  return adat.hozzavalok.filter((h) => !h.alap && (ide.has(h.id) || (!edes && !mashova.has(h.id))));
+}
+
+const EDES_KAT_SORREND = ['kamra', 'tej', 'zoldseg', 'hus'];
+
+function itthonOldal(edes = false) {
+  const tudod = tudodSzam(edes);
+  const lathato = relevansHozzavalok(edes);
+  const katok = edes
+    ? [...adat.kategoriak].sort((a, b) => EDES_KAT_SORREND.indexOf(a.id) - EDES_KAT_SORREND.indexOf(b.id))
+    : adat.kategoriak;
+  const csoportok = katok.map((kat) => {
+    const csempek = lathato
+      .filter((h) => h.kat === kat.id)
       .map((h) => `
         <button class="csempe" data-hozzavalo="${h.id}" aria-pressed="${itthon.has(h.id)}">
           <span class="ikon" aria-hidden="true">${h.ikon}</span>
           <span>${esc(h.nev)}</span>
           <span class="pipa" aria-hidden="true">${ikon('check')}</span>
         </button>`).join('');
-    return `<h2>${esc(kat.nev)}</h2><div class="racs">${csempek}</div>`;
+    return csempek ? `<h2>${esc(edes && kat.id === 'zoldseg' ? 'Gyümölcs' : kat.nev)}</h2><div class="racs">${csempek}</div>` : '';
   }).join('');
+  const vanPipa = lathato.some((h) => itthon.has(h.id));
 
   app.innerHTML = `
     ${vissza()}
-    <h1>Mi van itthon?</h1>
-    <p class="alcim">Koppints arra, ami van. Só, bors, olaj mindig van.</p>
+    <h1>${edes ? 'Mi van itthon sütéshez?' : 'Mi van itthon?'}</h1>
+    <p class="alcim">Koppints arra, ami van. ${edes ? 'Só, olaj, víz mindig van.' : 'Só, bors, olaj mindig van.'}</p>
     ${csoportok}
-    ${itthon.size ? `<button class="halk-gomb veszely" data-torles>${ikon('x')} Minden pipa törlése</button>` : ''}
+    ${vanPipa ? `<button class="halk-gomb veszely" data-torles>${ikon('x')} Pipák törlése ezen a listán</button>` : ''}
     <div class="also-sav">
-      <button class="nagy-gomb" data-ugras="#/receptek">
-        ${ikon('book-open-text')}
+      <button class="nagy-gomb" data-ugras="${edes ? '#/edessegek/receptek' : '#/receptek'}">
+        ${ikon(edes ? 'cake' : 'book-open-text')}
         <span class="gomb-szoveg">
-          Receptek mutatása
-          <small>${tudod ? `${tudod} receptet meg tudsz főzni` : 'Nézd meg, mihez mi kell még'}</small>
+          ${edes ? 'Édességek mutatása' : 'Receptek mutatása'}
+          <small>${tudod ? `${tudod} ${edes ? 'édességet meg tudsz csinálni' : 'receptet meg tudsz főzni'}` : 'Nézd meg, mihez mi kell még'}</small>
         </span>
       </button>
     </div>`;
@@ -1123,11 +1162,10 @@ function receptLista(edes = false) {
   const tobbi = mind.filter((x) => x.ismeretlen || x.hiany.length > 2);
 
   let html = edes
-    ? `${vissza()}<h1>Édességek</h1>
-       <button class="halk-gomb balra" data-ugras="#/itthon">${ikon('check')} Mi van itthon? (pipák)</button>`
+    ? `${vissza()}<h1>Édességek</h1>`
     : `${vissza()}<h1>Mit főzzek?</h1>`;
 
-  html += '<h2>Ezt meg tudod főzni</h2>';
+  html += `<h2>${edes ? 'Ezt meg tudod csinálni' : 'Ezt meg tudod főzni'}</h2>`;
   html += tudod.length
     ? `<div class="lista">${tudod.map(receptKartya).join('')}</div>`
     : '<p class="uzenet">Ebből még nem jön ki egy recept sem. Lent láthatod, mi hiányzik.</p>';
@@ -1594,7 +1632,8 @@ function rajzol() {
 
   if (ut === '#/itthon') itthonOldal();
   else if (ut === '#/receptek') receptLista();
-  else if (ut === '#/edessegek') receptLista(true);
+  else if (ut === '#/edessegek') itthonOldal(true);
+  else if (ut === '#/edessegek/receptek') receptLista(true);
   else if (ut === '#/receptjeim') receptjeimOldal();
   else if (ut === '#/uj-recept') ujReceptValasztoOldal();
   else if (ut === '#/beallitasok') beallitasokOldal();
@@ -1632,7 +1671,7 @@ app.addEventListener('click', async (e) => {
     if (itthon.has(id)) itthon.delete(id); else itthon.add(id);
     mentsItthon();
     const y = window.scrollY;
-    itthonOldal();
+    itthonOldal(location.hash === '#/edessegek');
     window.scrollTo(0, y);
   } else if (gomb.dataset.ugras) {
     location.hash = gomb.dataset.ugras;
@@ -1652,6 +1691,17 @@ app.addEventListener('click', async (e) => {
     rajzolMarad();
   } else if ('csatlakozas' in gomb.dataset) {
     await csatlakozas(gomb);
+  } else if ('csaladUj' in gomb.dataset) {
+    await csatlakozas(gomb, true);
+  } else if ('kilepes' in gomb.dataset) {
+    if (confirm('Biztosan kilépsz a családi receptkönyvből? A receptek ezen a telefonon maradnak.')) {
+      csalad = null;
+      kuldendo = [];
+      localStorage.removeItem(CSALAD_KULCS);
+      localStorage.removeItem(OTA_KULCS);
+      localStorage.removeItem(KULDENDO_KULCS);
+      location.replace('#/');
+    }
   } else if ('nevMent' in gomb.dataset) {
     const nev = document.getElementById('b-nev').value.trim();
     if (nev) { csalad.nev = nev; localStorage.setItem(CSALAD_KULCS, JSON.stringify(csalad)); rajzolMarad(); }
@@ -1671,10 +1721,11 @@ app.addEventListener('click', async (e) => {
   } else if ('lepes' in gomb.dataset) {
     gomb.setAttribute('aria-pressed', gomb.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
   } else if ('torles' in gomb.dataset) {
-    if (confirm('Biztosan törlöd az összes pipát?')) {
-      itthon.clear();
+    const edes = location.hash === '#/edessegek';
+    if (confirm('Biztosan törlöd a pipákat ezen a listán?')) {
+      for (const h of relevansHozzavalok(edes)) itthon.delete(h.id);
       mentsItthon();
-      itthonOldal();
+      itthonOldal(edes);
     }
   } else if ('keziUj' in gomb.dataset) {
     Object.assign(kezi, { valasztott: null, szerkesztIndex: null, egyebSzoveg: '', hiba: '' });

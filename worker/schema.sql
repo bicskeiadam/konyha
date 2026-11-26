@@ -25,3 +25,10 @@ CREATE TABLE IF NOT EXISTS naplo (
   cimke TEXT
 );
 CREATE INDEX IF NOT EXISTS naplo_ido ON naplo (csalad, ido);
+
+-- Families made from the app (codes in the CSALAD_KODOK secret work without a row here).
+CREATE TABLE IF NOT EXISTS csaladok (
+  csalad TEXT PRIMARY KEY,
+  letrehozva INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS csaladok_ido ON csaladok (letrehozva);

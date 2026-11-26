@@ -44,6 +44,10 @@ export default {
     if (keres.method === 'OPTIONS') return new Response(null, { headers: fejlec });
 
     const ut = new URL(keres.url).pathname;
+    if (ut === '/csalad-uj' && keres.method === 'POST') {
+      const kod = await ujCsalad(env.DB);
+      return kod ? valasz({ kod }) : valasz({ hiba: 'tul-sok' }, 429);
+    }
     if (ut === '/szinkron' || ut === '/kep' || ut === '/naplo') {
       const csalad = await csaladAzonosito(keres.headers.get('x-csalad'), env);
       if (!csalad) return valasz({ hiba: 'ismeretlen-csalad' }, 403);
@@ -483,12 +487,36 @@ async function helyesiras(ai, recept) {
 const TIPUSOK = new Set(['recept', 'hozzavalo', 'feluliras', 'kep']);
 const MAX_VALTOZAS = 50;
 
-// Only codes listed in the CSALAD_KODOK secret are accepted; the database only ever sees a hash of the code.
-async function csaladAzonosito(kod, env) {
-  const kodok = String(env.CSALAD_KODOK || '').split(',').map((k) => k.trim()).filter(Boolean);
-  if (!kod || !kodok.includes(kod.trim())) return null;
-  const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('konyha:' + kod.trim()));
+// A family code is accepted if it is in the CSALAD_KODOK secret or was made with /csalad-uj.
+// The database only ever sees a hash of the code, never the code itself.
+async function kodHash(kod) {
+  const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('konyha:' + kod));
   return [...new Uint8Array(hash)].slice(0, 12).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function csaladAzonosito(kod, env) {
+  kod = String(kod || '').trim().toLowerCase();
+  if (!/^[a-z0-9-]{8,40}$/.test(kod)) return null;
+  const hash = await kodHash(kod);
+  const kodok = String(env.CSALAD_KODOK || '').split(',').map((k) => k.trim().toLowerCase()).filter(Boolean);
+  if (kodok.includes(kod)) return hash;
+  const sor = await env.DB.prepare('SELECT 1 FROM csaladok WHERE csalad = ?').bind(hash).first();
+  return sor ? hash : null;
+}
+
+// Letters and digits that cannot be mixed up when read aloud or typed (no 0/o, 1/l/i).
+const KOD_BETUK = 'abcdefghjkmnpqrstuvwxyz23456789';
+const MAX_UJ_CSALAD_ORANKENT = 30;
+
+async function ujCsalad(db) {
+  const egyOraja = Date.now() - 3600_000;
+  const { db_n } = await db.prepare('SELECT COUNT(*) AS db_n FROM csaladok WHERE letrehozva > ?').bind(egyOraja).first();
+  if (db_n >= MAX_UJ_CSALAD_ORANKENT) return null;
+  const veletlen = crypto.getRandomValues(new Uint8Array(16));
+  const betuk = [...veletlen].map((b) => KOD_BETUK[b % KOD_BETUK.length]).join('');
+  const kod = betuk.match(/.{4}/g).join('-');
+  await db.prepare('INSERT INTO csaladok (csalad, letrehozva) VALUES (?, ?)').bind(await kodHash(kod), Date.now()).run();
+  return kod;
 }
 
 // One round trip: store this phone's changes (stamped with who and when, and logged),
