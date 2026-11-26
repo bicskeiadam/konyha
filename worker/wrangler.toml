@@ -4,3 +4,8 @@ compatibility_date = "2026-11-01"
 
 [ai]
 binding = "AI"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "konyha-csalad"
+database_id = "91650f14-62f7-4985-aa39-6289b6b047f3"

@@ -25,7 +25,7 @@ let importalas = { allapot: 'ures', link: '', recept: null, hiba: '' };
 // sorok: [{ id, mennyiseg, egyseg }] for ingredients from the list, [{ szoveg }] for anything else.
 // valasztott / szerkesztIndex: the ingredient picker's state (which one she tapped, which row she is changing).
 const uresKezi = () => ({
-  nev: '', ido: '', adag: '4', sorok: [], lepesek: '', kepBlob: null, kepUrl: null, hiba: '',
+  nev: '', ido: '', adag: '4', edes: false, sorok: [], lepesek: '', kepBlob: null, kepUrl: null, hiba: '',
   valasztott: null, szerkesztIndex: null, mennyiseg: '', egyseg: '', egyebSzoveg: '',
 });
 // The draft survives the app being closed (Android may close it while the camera is open).
@@ -341,11 +341,15 @@ function hozzavaloMentes() {
   if (ertek[1] + ertek[2] + ertek[3] > 101) { f.allapot = 'hiba'; f.uzenet = '100 grammban nem lehet több 100 grammnál. Nézd meg újra a számokat.'; return rajzolMarad(); }
 
   if (!f.kulcs) {
-    sajatHozzavalok.push({ id: 'u' + Date.now().toString(36), nev: f.nev.trim(), ikon: f.ikon, kat: f.kat, ertek, forras: f.forras || 'kezi' });
+    const uj = { id: 'u' + Date.now().toString(36), nev: f.nev.trim(), ikon: f.ikon, kat: f.kat, ertek, forras: f.forras || 'kezi' };
+    sajatHozzavalok.push(uj);
+    jelol('hozzavalo', uj.id, uj.nev);
   } else if (sajatHozzavalok.some((s) => s.id === f.kulcs)) {
     Object.assign(sajatHozzavalok.find((s) => s.id === f.kulcs), { ertek, forras: f.forras || 'kezi' });
+    jelol('hozzavalo', f.kulcs, f.nev);
   } else {
     felulirasok[f.kulcs] = { ertek, forras: f.forras || 'kezi' };
+    jelol('feluliras', f.kulcs, f.nev);
   }
   sajatMent();
   adatFrissit();
@@ -397,6 +401,7 @@ const Tar = {
   torol(id) { return this.muvelet('sajat', 'readwrite', (s) => s.delete(id)); },
   kepek() { return this.muvelet('kepek', 'readonly', (s) => s.getAll()); },
   kepMent(id, kep) { return this.muvelet('kepek', 'readwrite', (s) => s.put({ id, kep })); },
+  kepTorol(id) { return this.muvelet('kepek', 'readwrite', (s) => s.delete(id)); },
 };
 
 function kepBeallit(id, blob) {
@@ -417,16 +422,177 @@ async function sajatBetolt() {
 }
 
 // Photo of any recipe: own recipes keep it in their record, built-in ones in the "kepek" store.
-async function receptKepMent(r, blob) {
+// "kuld" = false when the photo came from another phone (no need to send it back).
+async function receptKepMent(r, blob, kuld = true) {
   if (r.sajat) {
     r.kep = blob;
     await Tar.ment(r);
-  } else {
+  } else if (blob) {
     await Tar.kepMent(r.id, blob);
+  } else {
+    await Tar.kepTorol(r.id);
   }
   kepBeallit(r.id, blob);
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
+  if (kuld) jelol('kep', r.id, r.nev);
 }
+
+/* ---------- Shared family collection (sync through the reader) ---------- */
+
+const CSALAD_KULCS = 'konyha.csalad';          // { kod, nev }
+const OTA_KULCS = 'konyha.szinkronOta';         // server time of the last successful sync
+const KULDENDO_KULCS = 'konyha.kuldendo';       // [{ tipus, id, cimke }] local changes not yet sent
+const META_KULCS = 'konyha.meta';               // { 'tipus:id': { letrehozta, letrehozva, modositotta, modositva } }
+
+let csalad = JSON.parse(localStorage.getItem(CSALAD_KULCS) || 'null');
+let kuldendo = JSON.parse(localStorage.getItem(KULDENDO_KULCS) || '[]');
+let meta = JSON.parse(localStorage.getItem(META_KULCS) || '{}');
+let szinkronFut = false;
+let szinkronIdozito = null;
+let utolsoSzinkronHiba = '';
+
+const sajatNev = () => (csalad && csalad.nev) || '';
+
+// Marks a local change for sending. The content is read fresh when it is sent, so marking twice is harmless.
+function jelol(tipus, id, cimke) {
+  const most = Date.now();
+  if (!kuldendo.some((k) => k.tipus === tipus && k.id === id)) kuldendo.push({ tipus, id, cimke: cimke || '' });
+  localStorage.setItem(KULDENDO_KULCS, JSON.stringify(kuldendo));
+  const m = meta[`${tipus}:${id}`];
+  meta[`${tipus}:${id}`] = m
+    ? { ...m, modositotta: sajatNev(), modositva: most }
+    : { letrehozta: sajatNev(), letrehozva: most, modositotta: sajatNev(), modositva: most };
+  localStorage.setItem(META_KULCS, JSON.stringify(meta));
+  if (csalad) {
+    clearTimeout(szinkronIdozito);
+    szinkronIdozito = setTimeout(szinkronizal, 1500);
+  }
+}
+
+// Everything on this phone, queued once when it joins the family, so her existing recipes become shared too.
+function mindentJelol() {
+  for (const r of sajatReceptek) { jelol('recept', r.id, r.nev); if (kepUrlek[r.id]) jelol('kep', r.id, r.nev); }
+  for (const r of adat.receptek) if (kepUrlek[r.id]) jelol('kep', r.id, r.nev);
+  for (const s of sajatHozzavalok) jelol('hozzavalo', s.id, s.nev);
+  for (const k of Object.keys(felulirasok)) jelol('feluliras', k, hozzavaloById[k]?.nev || k);
+}
+
+// What gets sent for one marked change: the current local content, or a deletion if it is gone.
+async function valtozas(k) {
+  if (k.tipus === 'recept') {
+    const r = sajatReceptek.find((x) => x.id === k.id);
+    if (!r) return { ...k, torolve: true };
+    const { kep, ...adat2 } = r;
+    return { ...k, adat: adat2 };
+  }
+  if (k.tipus === 'kep') {
+    const r = sajatReceptek.find((x) => x.id === k.id);
+    const blob = r ? r.kep : (await Tar.kepek()).find((x) => x.id === k.id)?.kep;
+    return blob ? { ...k, adat: await blobbolAdat(blob) } : { ...k, torolve: true };
+  }
+  if (k.tipus === 'hozzavalo') {
+    const s = sajatHozzavalok.find((x) => x.id === k.id);
+    return s ? { ...k, adat: s } : { ...k, torolve: true };
+  }
+  const f = felulirasok[k.id];
+  return f ? { ...k, adat: f } : { ...k, torolve: true };
+}
+
+async function szinkronizal() {
+  if (!csalad || szinkronFut || !navigator.onLine) return;
+  szinkronFut = true;
+  let valtozott = false;
+  try {
+    for (let kor = 0; kor < 20; kor++) {
+      // Photos are large: send at most 3 per request, everything else in batches of 30.
+      const csomag = [];
+      let kepDb = 0;
+      for (const k of kuldendo) {
+        if (csomag.length >= 30) break;
+        if (k.tipus === 'kep') { if (kepDb >= 3) continue; kepDb++; }
+        csomag.push(k);
+      }
+      const valasz = await fetch(OLVASO_URL + 'szinkron', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-csalad': csalad.kod },
+        body: JSON.stringify({ nev: csalad.nev, ota: +(localStorage.getItem(OTA_KULCS) || 0), valtozasok: await Promise.all(csomag.map(valtozas)) }),
+      });
+      if (valasz.status === 403) { utolsoSzinkronHiba = 'A családi kód nem érvényes.'; break; }
+      if (!valasz.ok) throw new Error(String(valasz.status));
+      const v = await valasz.json();
+      kuldendo = kuldendo.filter((k) => !csomag.includes(k));
+      localStorage.setItem(KULDENDO_KULCS, JSON.stringify(kuldendo));
+      if (await alkalmaz(v.elemek)) valtozott = true;
+      localStorage.setItem(OTA_KULCS, String(v.most));
+      utolsoSzinkronHiba = '';
+      if (!kuldendo.length) break;
+    }
+  } catch (_) {
+    utolsoSzinkronHiba = 'Most nem sikerült szinkronizálni. Ha lesz internet, magától újrapróbálja.';
+  } finally {
+    szinkronFut = false;
+  }
+  // Redraw only screens that just show things, never a form she is typing into.
+  const ut = location.hash || '#/';
+  if (valtozott && !/^#\/(kezi|uj|hozzavalo)/.test(ut)) rajzolMarad();
+}
+
+// Applies what other phones changed. Items this phone still has waiting to send are skipped (local wins).
+async function alkalmaz(elemek) {
+  const varakozik = new Set(kuldendo.map((k) => `${k.tipus}:${k.id}`));
+  let valtozott = false;
+  let hozzavalokValtoztak = false;
+  // Recipes first, so their photos know where they belong.
+  const sorrend = { recept: 0, hozzavalo: 1, feluliras: 2, kep: 3 };
+  for (const e of [...elemek].sort((a, b) => sorrend[a.tipus] - sorrend[b.tipus])) {
+    const kulcs = `${e.tipus}:${e.id}`;
+    meta[kulcs] = { letrehozta: e.letrehozta, letrehozva: e.letrehozva, modositotta: e.modositotta, modositva: e.modositva };
+    if (varakozik.has(kulcs)) continue;
+    if (e.tipus === 'recept') {
+      const i = sajatReceptek.findIndex((r) => r.id === e.id);
+      if (e.torolve) {
+        if (i >= 0) { await Tar.torol(e.id); sajatReceptek.splice(i, 1); kepBeallit(e.id, null); valtozott = true; }
+      } else if (e.adat && e.adat.id === e.id) {
+        const uj = { ...e.adat, sajat: true, kep: i >= 0 ? sajatReceptek[i].kep : null };
+        if (i >= 0) sajatReceptek[i] = uj; else sajatReceptek.push(uj);
+        await Tar.ment(uj);
+        valtozott = true;
+      }
+    } else if (e.tipus === 'kep') {
+      const r = sajatReceptek.find((x) => x.id === e.id) || adat.receptek.find((x) => x.id === e.id);
+      if (!r) continue;
+      if (e.torolve) { if (kepUrlek[e.id]) { await receptKepMent(r, null, false); valtozott = true; } continue; }
+      try {
+        const k = await (await fetch(OLVASO_URL + 'kep?id=' + encodeURIComponent(e.id), { headers: { 'x-csalad': csalad.kod } })).json();
+        if (k.adat) { await receptKepMent(r, await (await fetch(k.adat)).blob(), false); valtozott = true; }
+      } catch (_) { /* the photo arrives with a later sync */ }
+    } else if (e.tipus === 'hozzavalo') {
+      sajatHozzavalok = sajatHozzavalok.filter((s) => s.id !== e.id);
+      if (!e.torolve && e.adat) sajatHozzavalok.push(e.adat);
+      hozzavalokValtoztak = true;
+    } else if (e.tipus === 'feluliras') {
+      if (e.torolve) delete felulirasok[e.id]; else if (e.adat) felulirasok[e.id] = e.adat;
+      hozzavalokValtoztak = true;
+    }
+  }
+  localStorage.setItem(META_KULCS, JSON.stringify(meta));
+  if (hozzavalokValtoztak) { sajatMent(); adatFrissit(); valtozott = true; }
+  return valtozott;
+}
+
+// "Anna adta hozzá, nov. 26." (and who changed it last, if someone else did).
+function szerzoSor(tipus, id) {
+  const m = meta[`${tipus}:${id}`];
+  if (!m || !m.letrehozta) return '';
+  const datum = (t) => new Date(t).toLocaleDateString('hu-HU', { month: 'short', day: 'numeric' });
+  let s = `${m.letrehozta} adta hozzá, ${datum(m.letrehozva)}`;
+  // Hungarian short dates already end with a period ("nov. 26."), so none is added after them.
+  if (m.modositotta && m.modositotta !== m.letrehozta) s += ` Utoljára ${m.modositotta} módosította, ${datum(m.modositva)}`;
+  return s;
+}
+
+window.addEventListener('online', () => szinkronizal());
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') szinkronizal(); });
 
 /* ---------- Screens ---------- */
 
@@ -439,8 +605,8 @@ function vissza() {
   return `<div class="fejlec"><button class="vissza" data-vissza>${ikon('caret-left')} Vissza</button></div>`;
 }
 
-function tudodSzam() {
-  return rendezettReceptek().filter((x) => !x.ismeretlen && x.hiany.length === 0).length;
+function tudodSzam(edes = false) {
+  return rendezettReceptek().filter((x) => !x.r.edes === !edes && !x.ismeretlen && x.hiany.length === 0).length;
 }
 
 function menuGomb(cel, ikonNev, cim, leiras, fo = false) {
@@ -466,10 +632,162 @@ function fomenu() {
       </div>
       <nav class="menu-gombok" aria-label="Főmenü">
         ${menuGomb('#/itthon', 'cooking-pot', 'Mit főzzek?', tudod ? `${tudod} receptet meg tudsz főzni` : 'Pipáld be, mi van itthon', true)}
+        ${menuGomb('#/receptjeim', 'book-open-text', 'Családi receptek', sajatReceptek.length ? `${sajatReceptek.length} elmentett recept` : 'Linkből, képről vagy kézzel')}
+        ${menuGomb('#/edessegek', 'cake', 'Édességek', 'Sütik, desszertek')}
         ${menuGomb('#/tapanyag', 'chart-bar', 'Tápértékek', 'Fehérje, kalória, zsír')}
-        ${menuGomb('#/kezi', 'note-pencil', 'Új recept', 'Saját recept, fényképpel')}
       </nav>
+      <button class="halk-link" data-ugras="#/beallitasok">${ikon('gear-six')} ${csalad ? `Család és beállítások (${esc(csalad.nev)})` : 'Család és beállítások'}</button>
     </div>`;
+}
+
+/* ---------- Family recipes ---------- */
+
+let csakSajat = false;
+
+function receptjeimOldal() {
+  let lista = [...sajatReceptek];
+  if (csakSajat && csalad) lista = lista.filter((r) => meta[`recept:${r.id}`]?.letrehozta === csalad.nev);
+  const ido = (r) => meta[`recept:${r.id}`]?.letrehozva || Date.parse(r.hozzaadva || 0) || 0;
+  lista.sort((a, b) => ido(b) - ido(a));
+  const kartyak = lista.map((r) => receptKartya({ r, hiany: hianyzik(r), szerzo: true })).join('');
+  app.innerHTML = `
+    ${vissza()}
+    <h1>Családi receptek</h1>
+    <button class="nagy-gomb kozepen" data-ugras="#/uj-recept">${ikon('plus')}<span class="gomb-szoveg">Új recept</span></button>
+    ${csalad ? `<div class="szuro-sor">
+      <button class="szuro" data-csak-sajat="0" aria-pressed="${!csakSajat}">Mind</button>
+      <button class="szuro" data-csak-sajat="1" aria-pressed="${csakSajat}">Csak az enyém</button>
+    </div>` : '<p class="tipp tipp-kozep">Ha összekötöd a család telefonjait, itt mindenki receptjei megjelennek. Lásd lent: Család és beállítások.</p>'}
+    ${kartyak ? `<div class="lista">${kartyak}</div>` : `<p class="uzenet">${csakSajat ? 'Még nem adtál hozzá receptet.' : 'Még nincs elmentett recept. Az Új recept gombbal adhatsz hozzá.'}</p>`}
+    <button class="halk-gomb" data-ugras="#/beallitasok">${ikon('gear-six')} Család és beállítások</button>`;
+}
+
+function ujReceptValasztoOldal() {
+  app.innerHTML = `
+    ${vissza()}
+    <h1>Új recept</h1>
+    <nav class="menu-gombok">
+      ${menuGomb('#/kepbol', 'camera', 'Képről', 'Fotó egy szakácskönyvről, vagy képernyőkép', true)}
+      ${menuGomb('#/uj', 'link-simple', 'Linkből', 'Receptoldal címe vagy megosztás')}
+      ${menuGomb('#/kezi', 'note-pencil', 'Kézzel írom be', 'Hozzávalók a listából, mennyiséggel')}
+    </nav>`;
+}
+
+/* ---------- Family settings: join, name, sync status, activity log, backup ---------- */
+
+let naploAdat = null;
+
+function meghivoLink() {
+  return `${location.origin}${location.pathname}#/csatlakozas/${encodeURIComponent(csalad.kod)}`;
+}
+
+function idoSzoveg(t) {
+  return new Date(t).toLocaleString('hu-HU', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+const NAPLO_MIT = { hozzaadta: 'hozzáadta', modositotta: 'módosította', torolte: 'törölte' };
+const NAPLO_TIPUS = { recept: 'receptet', kep: 'fényképet', hozzavalo: 'hozzávalót', feluliras: 'tápértéket' };
+
+function beallitasokOldal() {
+  if (!csalad) {
+    app.innerHTML = `
+      ${vissza()}
+      <h1>Család és beállítások</h1>
+      <h2>Közös családi receptkönyv</h2>
+      <p>Ha összekötöd a család telefonjait, amit bárki hozzáad, mindenkinél megjelenik.</p>
+      <p class="tipp">A legegyszerűbb: nyisd meg ezen a telefonon a meghívó linket, amit valaki a családból küldött. Vagy írd be a családi kódot:</p>
+      ${csatlakozoUrlap('')}
+      ${mentesResz()}`;
+    return;
+  }
+  const naplo = naploAdat
+    ? (naploAdat.length
+      ? `<ul class="naplo">${naploAdat.map((n) => `<li><b>${esc(n.ki)}</b> ${NAPLO_MIT[n.mit] || n.mit} a ${NAPLO_TIPUS[n.tipus] || ''}: ${esc(n.cimke)}<span class="naplo-ido">${idoSzoveg(n.ido)}</span></li>`).join('')}</ul>`
+      : '<p class="tipp">Még nem történt semmi.</p>')
+    : '<p class="tipp">Betöltöm…</p>';
+  const utolso = +(localStorage.getItem(OTA_KULCS) || 0);
+  app.innerHTML = `
+    ${vissza()}
+    <h1>Család és beállítások</h1>
+    <label class="cimke" for="b-nev">A neved ezen a telefonon</label>
+    <input id="b-nev" class="mezo" value="${esc(csalad.nev)}" autocomplete="off">
+    <button class="halk-gomb balra" data-nev-ment>${ikon('check')} Név mentése</button>
+    <h2>Közös receptkönyv</h2>
+    <p class="tipp">${kuldendo.length ? `${kuldendo.length} változás vár küldésre. ` : ''}${utolso ? `Utoljára frissítve: ${idoSzoveg(utolso)}.` : 'Még nem volt frissítés.'}</p>
+    ${utolsoSzinkronHiba ? `<p class="uzenet hiba-uzenet">${esc(utolsoSzinkronHiba)}</p>` : ''}
+    <button class="halk-gomb balra" data-szinkron>${ikon('arrows-clockwise')} Frissítés most</button>
+    <button class="halk-gomb balra" data-meghivo>${ikon('share-network')} Meghívó link küldése</button>
+    <p class="tipp">A meghívó linket a család többi tagjának küldd el. Aki megnyitja, csatlakozik a közös receptkönyvhöz.</p>
+    <h2>Mi változott?</h2>
+    ${naplo}
+    ${mentesResz()}`;
+  if (!naploAdat) naploBetolt();
+}
+
+async function naploBetolt() {
+  if (!csalad || !navigator.onLine) { naploAdat = []; return; }
+  try {
+    const v = await (await fetch(OLVASO_URL + 'naplo', { headers: { 'x-csalad': csalad.kod } })).json();
+    naploAdat = v.naplo || [];
+  } catch (_) {
+    naploAdat = [];
+  }
+  if (location.hash === '#/beallitasok') rajzolMarad();
+}
+
+function mentesResz() {
+  return `
+    <h2>Biztonsági mentés</h2>
+    <p class="tipp">Egy fájlba menti a recepteket, fényképeket és hozzávalókat${csalad ? '. A közös receptkönyv mellett nem feltétlenül kell, de nem árt' : ', mert most csak ezen a telefonon vannak'}.</p>
+    <button class="halk-gomb balra" data-export>${ikon('download-simple')} Mentés fájlba</button>
+    <label class="halk-gomb balra fajl-gomb">${ikon('upload-simple')} Mentés visszatöltése<input type="file" accept="application/json,.json" data-import hidden></label>`;
+}
+
+let csatlakozasHiba = '';
+
+function csatlakozoUrlap(kod) {
+  return `
+    ${csatlakozasHiba ? `<p class="uzenet hiba-uzenet">${esc(csatlakozasHiba)}</p>` : ''}
+    ${kod ? `<input type="hidden" id="c-kod" value="${esc(kod)}">` : `
+      <label class="cimke" for="c-kod">Családi kód</label>
+      <input id="c-kod" class="mezo" autocomplete="off" autocapitalize="none" spellcheck="false">`}
+    <label class="cimke" for="c-nev">Hogy hívnak?</label>
+    <input id="c-nev" class="mezo" autocomplete="given-name" placeholder="pl. Mama, Anna">
+    <button class="nagy-gomb kozepen" data-csatlakozas>${ikon('users-three')}<span class="gomb-szoveg">Csatlakozom</span></button>`;
+}
+
+function csatlakozasOldal(kod) {
+  if (csalad && csalad.kod === kod) { location.replace('#/receptjeim'); return; }
+  app.innerHTML = `
+    ${vissza()}
+    <h1>Családi receptkönyv</h1>
+    <p>Meghívtak a közös családi receptkönyvbe. Amit bárki hozzáad, mindenkinél megjelenik.</p>
+    ${csatlakozoUrlap(kod)}`;
+}
+
+async function csatlakozas(gomb) {
+  const kod = (document.getElementById('c-kod')?.value || '').trim();
+  const nev = (document.getElementById('c-nev')?.value || '').trim();
+  if (!kod || !nev) { csatlakozasHiba = !kod ? 'Írd be a családi kódot.' : 'Írd be a neved, hogy lássák, ki mit tett hozzá.'; return rajzolMarad(); }
+  if (!navigator.onLine) { csatlakozasHiba = 'Ehhez internet kell.'; return rajzolMarad(); }
+  gomb.disabled = true;
+  try {
+    const v = await fetch(OLVASO_URL + 'szinkron', {
+      method: 'POST', headers: { 'content-type': 'application/json', 'x-csalad': kod }, body: JSON.stringify({ nev, ota: 0, valtozasok: [] }),
+    });
+    if (v.status === 403) { csatlakozasHiba = 'Ez a kód nem jó. Nézd meg újra, vagy kérj új meghívó linket.'; return rajzolMarad(); }
+    if (!v.ok) throw new Error();
+  } catch (_) {
+    csatlakozasHiba = 'Most nem sikerült elérni a szolgáltatást. Próbáld újra kicsit később.';
+    return rajzolMarad();
+  }
+  csatlakozasHiba = '';
+  csalad = { kod, nev };
+  localStorage.setItem(CSALAD_KULCS, JSON.stringify(csalad));
+  localStorage.setItem(OTA_KULCS, '0');
+  mindentJelol();
+  await szinkronizal();
+  location.replace('#/receptjeim');
 }
 
 // Camera + gallery buttons. "cel" says where the photo goes: kezi, import, or recept:<id>.
@@ -532,12 +850,13 @@ const EGYSEGEK = {
   izles: { nev: 'ízlés szerint', g: 0 },
 };
 // Liquids, measured in dl/ml/liter (taken as 1 g per ml).
-const FOLYEKONY = new Set(['tej', 'tejfol', 'joghurt', 'olaj', 'viz', 'paradicsomszosz']);
+const FOLYEKONY = new Set(['tej', 'tejfol', 'joghurt', 'olaj', 'viz', 'paradicsomszosz', 'tejszin']);
 // Things counted by the piece: [grams per piece, what one piece is called].
 const DARAB = {
   tojas: [55, 'db'], hagyma: [120, 'fej'], fokhagyma: [5, 'gerezd'], krumpli: [150, 'db'], paprika: [100, 'db'],
   paradicsom: [120, 'db'], repa: [80, 'db'], petrezselyem: [80, 'db'], kenyer: [40, 'szelet'], tonhal: [120, 'konzerv'],
   kukorica: [140, 'konzerv'], karfiol: [1000, 'fej'], brokkoli: [400, 'fej'], kaposzta: [1000, 'fej'], tok: [400, 'db'],
+  banan: [120, 'db'], alma: [180, 'db'], eleszto: [25, 'kocka'], sutopor: [12, 'csomag'], vaniliascukor: [8, 'csomag'],
 };
 const FUSZER = new Set(['so', 'bors', 'pirospaprika']);
 
@@ -605,9 +924,14 @@ function keziOldal() {
         <input id="k-ido" class="mezo" data-kezi="ido" value="${esc(k.ido)}" placeholder="pl. 45 perc" autocomplete="off">
       </div>
       <div>
-        <label class="cimke" for="k-adag">Hány adag?</label>
-        <input id="k-adag" class="mezo" data-kezi="adag" value="${esc(k.adag)}" type="number" inputmode="numeric" min="1" max="30">
+        <label class="cimke" for="k-adag">${k.edes ? 'Hány szelet?' : 'Hány adag?'}</label>
+        <input id="k-adag" class="mezo" data-kezi="adag" value="${esc(k.adag)}" type="number" inputmode="numeric" min="1" max="60">
       </div>
+    </div>
+    <p class="szuro-cim">Milyen recept?</p>
+    <div class="szuro-sor">
+      <button class="szuro" data-kezi-edes="0" aria-pressed="${!k.edes}">Étel</button>
+      <button class="szuro" data-kezi-edes="1" aria-pressed="${Boolean(k.edes)}">Édesség</button>
     </div>
     <h2>Hozzávalók</h2>
     ${k.sorok.length
@@ -743,8 +1067,9 @@ async function keziMentes(gomb) {
     sajat: true,
     nev: k.nev.trim(),
     ido: k.ido.trim(),
-    adag: `${adagSzam} adag`,
+    adag: `${adagSzam} ${k.edes ? 'szelet' : 'adag'}`,
     adagSzam,
+    ...(k.edes ? { edes: true, egyseg: 'szelet' } : {}),
     forras: null,
     lepesek: sorokra(k.lepesek),
     // Same shape as the built-in recipes (id + amount + grams), so the nutrition table works for these too.
@@ -758,6 +1083,8 @@ async function keziMentes(gomb) {
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
   if (uj.kep) kepUrlek[uj.id] = k.kepUrl;
   sajatReceptek.push(uj);
+  jelol('recept', uj.id, uj.nev);
+  if (uj.kep) jelol('kep', uj.id, uj.nev);
   kezi = uresKezi();
   localStorage.removeItem(PISZKOZAT_KULCS);
   keziMentve = true;
@@ -769,11 +1096,13 @@ function receptKep(r, osztaly) {
   return r.ikon ? `<span class="ikon" aria-hidden="true">${r.ikon}</span>` : `<span class="ikon-hely">${ikon('fork-knife')}</span>`;
 }
 
-function receptKartya({ r, hiany }) {
-  const hianySor = hiany.length ? `<span class="hiany">Kell még: ${esc(hiany.join(', '))}</span>` : '';
+function receptKartya({ r, hiany, szerzo }) {
+  const ki = szerzo && csalad ? meta[`recept:${r.id}`]?.letrehozta : '';
+  const hianySor = (ki ? `<span class="szerzo-sor">${ikon('user')} ${esc(ki)}</span>` : '')
+    + (hiany.length ? `<span class="hiany">Kell még: ${esc(hiany.join(', '))}</span>` : '');
   const info = [r.ido, r.adag].filter(Boolean).map(esc).join(' · ');
   const t = tapertek(r);
-  const tapSor = t ? `<span class="tap-sor">1 adag: ${kerekKcal(t.adag.kcal)} kcal · ${kerekG(t.adag.feherje)} g fehérje</span>` : '';
+  const tapSor = t ? `<span class="tap-sor">1 ${esc(r.egyseg || 'adag')}: ${kerekKcal(t.adag.kcal)} kcal · ${kerekG(t.adag.feherje)} g fehérje</span>` : '';
   return `
     <button class="recept-kartya" data-ugras="#/recept/${encodeURIComponent(r.id)}">
       ${receptKep(r, 'kiskep')}
@@ -787,13 +1116,16 @@ function receptKartya({ r, hiany }) {
     </button>`;
 }
 
-function receptLista() {
-  const mind = rendezettReceptek();
+function receptLista(edes = false) {
+  const mind = rendezettReceptek().filter((x) => !x.r.edes === !edes);
   const tudod = mind.filter((x) => !x.ismeretlen && x.hiany.length === 0);
   const majdnem = mind.filter((x) => !x.ismeretlen && x.hiany.length > 0 && x.hiany.length <= 2);
   const tobbi = mind.filter((x) => x.ismeretlen || x.hiany.length > 2);
 
-  let html = `${vissza()}<h1>Mit főzzek?</h1>`;
+  let html = edes
+    ? `${vissza()}<h1>Édességek</h1>
+       <button class="halk-gomb balra" data-ugras="#/itthon">${ikon('check')} Mi van itthon? (pipák)</button>`
+    : `${vissza()}<h1>Mit főzzek?</h1>`;
 
   html += '<h2>Ezt meg tudod főzni</h2>';
   html += tudod.length
@@ -847,7 +1179,7 @@ function taperTabla(r) {
   return `
     <div class="tapertek">
       <table>
-        <thead><tr><th></th><th>1 adag</th><th>Az egész<br><small>(${t.adagSzam} adag)</small></th></tr></thead>
+        <thead><tr><th></th><th>1 ${esc(r.egyseg || 'adag')}</th><th>Az egész<br><small>(${t.adagSzam} ${esc(r.egyseg || 'adag')})</small></th></tr></thead>
         <tbody>
           ${sor('Kalória', 'kcal', 'kcal')}
           ${sor('Fehérje', 'feherje', 'g')}
@@ -875,7 +1207,9 @@ function receptOldal(id) {
 
   const forras = r.sajat && r.forras ? `
     <p class="forras">${ikon('link')}<span>${r.forditva ? 'Magyarra fordítva. Eredeti recept' : 'Forrás'}: <a href="${esc(r.forras)}" target="_blank" rel="noopener">${esc(new URL(r.forras).hostname.replace(/^www\./, ''))}</a></span></p>` : '';
+  const szerzo = r.sajat ? szerzoSor('recept', r.id) : '';
   const lab = `
+    ${szerzo ? `<p class="forras">${ikon('user')}<span>${esc(szerzo)}</span></p>` : ''}
     <h2>${kepUrlek[r.id] ? 'Fénykép cseréje' : 'Fénykép hozzáadása'}</h2>
     ${kepValaszto(`recept:${r.id}`, null, false)}
     ${forras}
@@ -893,6 +1227,75 @@ function receptOldal(id) {
     ${lab}`;
 
   tartsdEbren();
+}
+
+/* ---------- New recipe from a photo or a screenshot ---------- */
+
+let kepbol = { allapot: 'ures', hiba: '' };
+
+function kepbolOldal() {
+  const k = kepbol;
+  app.innerHTML = `
+    ${vissza()}
+    <h1>Recept képről</h1>
+    ${k.allapot === 'olvas'
+      ? '<p class="uzenet">Olvasom a receptet a képről…<br>Ez 10-20 másodpercig is eltarthat.</p>'
+      : `
+        ${k.allapot === 'hiba' ? `<p class="uzenet hiba-uzenet">${esc(k.hiba)}</p>` : ''}
+        <p>Fotózz le egy receptet egy szakácskönyvből, újságból vagy a füzetedből. Vagy válassz egy képernyőképet, például egy Instagram-leírást.</p>
+        <div class="kep-gombok">
+          <label class="halk-gomb fajl-gomb">${ikon('camera')} Fotózás<input type="file" accept="image/*" capture="environment" data-kepbol hidden></label>
+          <label class="halk-gomb fajl-gomb">${ikon('image')} Galériából<input type="file" accept="image/*" data-kepbol hidden></label>
+        </div>
+        <p class="tipp tipp-kozep">Az egész recept látszódjon a képen, élesen. Más nyelvű receptet magyarra fordít.</p>`}`;
+}
+
+async function kepbolOlvas(fajl) {
+  if (!navigator.onLine) { kepbol = { allapot: 'hiba', hiba: 'Ehhez internet kell.' }; return rajzolMarad(); }
+  kepbol = { allapot: 'olvas', hiba: '' };
+  rajzolMarad();
+  const ideiglenes = URL.createObjectURL(fajl);
+  try {
+    const blob = await kicsinyit(ideiglenes, 1600);
+    const v = await (await fetch(OLVASO_URL + 'kepbol', {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kep: await blobbolAdat(blob) }),
+    })).json();
+    if (v.hiba) {
+      kepbol = { allapot: 'hiba', hiba: 'Ezen a képen nem találtam receptet. Próbáld élesebb képpel, úgy, hogy az egész recept látszódjon.' };
+      return rajzolMarad();
+    }
+    kepbol = { allapot: 'ures', hiba: '' };
+    importalas = {
+      allapot: 'elonezet',
+      link: '',
+      hiba: '',
+      recept: {
+        nev: v.nev, ido: v.ido || '', adag: v.adag || '', adagSzam: v.adagSzam || null, edes: Boolean(v.edes), forras: null,
+        lepesek: v.lepesek,
+        hozzavalok: v.hozzavalok.map((szoveg) => ({ szoveg, id: illeszt(szoveg), opcionalis: OPCIONALIS.test(szoveg) || undefined })),
+        kepBlob: null, kepUrl: null,
+      },
+    };
+    location.replace('#/uj');
+  } catch (_) {
+    kepbol = { allapot: 'hiba', hiba: 'Most nem sikerült elérni a szolgáltatást. Próbáld újra kicsit később.' };
+    rajzolMarad();
+  } finally {
+    URL.revokeObjectURL(ideiglenes);
+  }
+}
+
+// A screenshot shared from another app arrives through the service worker, which parks it in the cache.
+async function megosztottKep() {
+  try {
+    const c = await caches.open('megosztas');
+    const v = await c.match('megosztott-kep');
+    if (!v) return null;
+    await c.delete('megosztott-kep');
+    return await v.blob();
+  } catch (_) {
+    return null;
+  }
 }
 
 /* ---------- New recipe from a link ---------- */
@@ -943,6 +1346,13 @@ function ujRecept() {
       ${info ? `<p class="meta">${info}</p>` : ''}
       ${recept.forditva ? '<p class="tipp">Magyarra fordítva. Az eredeti receptet a recept alján lévő linken találod.</p>' : ''}
       ${recept.forditasSikertelen ? '<p class="uzenet">A fordítás most nem sikerült, ezért eredeti nyelven látod. Később újra próbálhatod.</p>' : ''}
+      <label class="cimke" for="recept-adag">Hány adag vagy szelet?</label>
+      <input id="recept-adag" class="mezo" type="number" inputmode="numeric" min="1" max="60" value="${esc(recept.adagSzam || parseInt(recept.adag, 10) || '')}">
+      <p class="szuro-cim">Milyen recept?</p>
+      <div class="szuro-sor">
+        <button class="szuro" data-import-edes="0" aria-pressed="${!recept.edes}">Étel</button>
+        <button class="szuro" data-import-edes="1" aria-pressed="${Boolean(recept.edes)}">Édesség</button>
+      </div>
       <h2>Hozzávalók</h2>
       <p class="tipp">Ellenőrizd, melyik gombhoz tartozik. Ami „Nem számít”, az is látszani fog a receptben.</p>
       <ul class="hozzavalok">${sorok}</ul>
@@ -956,11 +1366,7 @@ function ujRecept() {
       <input id="link" class="mezo" type="url" inputmode="url" placeholder="https://…" value="${esc(link)}">
       <button class="nagy-gomb kozepen" data-betolt>${ikon('download-simple')}<span class="gomb-szoveg">Betöltés</span></button>
       <p class="tipp tipp-kozep">Tipp: a recept oldalán nyomd meg a <b>Megosztás</b> gombot, és válaszd a <b>Konyha</b> alkalmazást.</p>
-      <p class="tipp tipp-kozep">Működik: Nosalty, Mindmegette, Street Kitchen, Sóbors, Receptneked, Coolinarika, Recepti.com.<br>A szerb és horvát recepteket magyarra fordítja.</p>
-      <h2>Biztonsági mentés</h2>
-      <p class="tipp">A hozzáadott receptek csak ezen a telefonon vannak. Néha érdemes elmenteni őket egy fájlba.</p>
-      <button class="halk-gomb balra" data-export>${ikon('download-simple')} Saját receptek mentése (${sajatReceptek.length})</button>
-      <label class="halk-gomb balra fajl-gomb">${ikon('upload-simple')} Mentés visszatöltése<input type="file" accept="application/json,.json" data-import hidden></label>`;
+      <p class="tipp tipp-kozep">Működik: Nosalty, Mindmegette, Street Kitchen, Sóbors, Receptneked, Coolinarika, Recepti.com.<br>A szerb és horvát recepteket magyarra fordítja.</p>`;
   }
   app.innerHTML = html;
 }
@@ -1011,6 +1417,7 @@ async function betolt(link) {
       forras: valasz.forras,
       forditva: Boolean(valasz.forditva),
       forditasSikertelen: Boolean(valasz.forditasSikertelen),
+      edes: Boolean(valasz.edes),
       lepesek: valasz.lepesek,
       // Match on the original line first (reliable Serbian keywords), then on the Hungarian translation.
       hozzavalok: valasz.hozzavalok.map((szoveg, i) => {
@@ -1049,12 +1456,15 @@ async function kicsinyit(adatUrl, maxMeret = 900) {
 async function mentes() {
   const r = importalas.recept;
   const nev = document.getElementById('recept-nev')?.value.trim() || r.nev;
+  const adagSzam = parseInt(document.getElementById('recept-adag')?.value, 10) || r.adagSzam || null;
   const uj = {
     id: 's' + Date.now().toString(36),
     sajat: true,
     nev,
     ido: r.ido,
-    adag: r.adag,
+    adag: adagSzam ? `${adagSzam} ${r.edes ? 'szelet' : 'adag'}` : r.adag,
+    ...(adagSzam ? { adagSzam } : {}),
+    ...(r.edes ? { edes: true, egyseg: 'szelet' } : {}),
     forras: r.forras,
     ...(r.forditva ? { forditva: true } : {}),
     lepesek: r.lepesek,
@@ -1066,6 +1476,8 @@ async function mentes() {
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
   if (uj.kep) kepUrlek[uj.id] = r.kepUrl;
   sajatReceptek.push(uj);
+  jelol('recept', uj.id, uj.nev);
+  if (uj.kep) jelol('kep', uj.id, uj.nev);
   if (r.kezi) { kezi = uresKezi(); keziMentve = true; }
   importalas = { allapot: 'ures', link: '', recept: null, hiba: '' };
   location.replace('#/recept/' + encodeURIComponent(uj.id));
@@ -1142,6 +1554,7 @@ async function importal(fajl) {
     sajatMent();
     adatFrissit();
     await sajatBetolt();
+    if (csalad) mindentJelol();
     alert(`${mentett.receptek.length} recept és ${(mentett.kepek || []).length} fénykép visszatöltve.`);
   } catch (_) {
     alert('Ez nem egy Konyha mentés fájl.');
@@ -1177,9 +1590,22 @@ function rajzol() {
 
   const ut = location.hash || '#/';
   if (!ut.startsWith('#/recept/')) engedjAludni();
+  if (ut !== '#/beallitasok') naploAdat = null;
 
   if (ut === '#/itthon') itthonOldal();
   else if (ut === '#/receptek') receptLista();
+  else if (ut === '#/edessegek') receptLista(true);
+  else if (ut === '#/receptjeim') receptjeimOldal();
+  else if (ut === '#/uj-recept') ujReceptValasztoOldal();
+  else if (ut === '#/beallitasok') beallitasokOldal();
+  else if (ut.startsWith('#/csatlakozas/')) csatlakozasOldal(decodeURIComponent(ut.slice(14)));
+  else if (ut.startsWith('#/kepbol')) {
+    kepbolOldal();
+    if (ut.includes('megosztott')) {
+      history.replaceState(null, '', location.pathname + '#/kepbol');
+      megosztottKep().then((blob) => blob && kepbolOlvas(blob));
+    }
+  }
   else if (ut.startsWith('#/recept/')) receptOldal(decodeURIComponent(ut.slice(9)));
   else if (ut.startsWith('#/uj')) ujRecept();
   else if (ut.startsWith('#/kezi') && keziMentve) { keziMentve = false; location.replace('#/'); return; }
@@ -1214,9 +1640,34 @@ app.addEventListener('click', async (e) => {
     if (history.length > 1) history.back(); else location.hash = '#/';
   } else if ('tobbi' in gomb.dataset) {
     mutasdATobbit = true;
-    const y = window.scrollY;
-    receptLista();
-    window.scrollTo(0, y);
+    rajzolMarad();
+  } else if (gomb.dataset.keziEdes) {
+    kezi.edes = gomb.dataset.keziEdes === '1';
+    rajzolMarad();
+  } else if (gomb.dataset.importEdes) {
+    importalas.recept.edes = gomb.dataset.importEdes === '1';
+    rajzolMarad();
+  } else if (gomb.dataset.csakSajat) {
+    csakSajat = gomb.dataset.csakSajat === '1';
+    rajzolMarad();
+  } else if ('csatlakozas' in gomb.dataset) {
+    await csatlakozas(gomb);
+  } else if ('nevMent' in gomb.dataset) {
+    const nev = document.getElementById('b-nev').value.trim();
+    if (nev) { csalad.nev = nev; localStorage.setItem(CSALAD_KULCS, JSON.stringify(csalad)); rajzolMarad(); }
+  } else if ('szinkron' in gomb.dataset) {
+    gomb.disabled = true;
+    await szinkronizal();
+    naploAdat = null;
+    rajzolMarad();
+  } else if ('meghivo' in gomb.dataset) {
+    const link = meghivoLink();
+    if (navigator.share) {
+      navigator.share({ title: 'Konyha', text: 'Csatlakozz a közös családi receptkönyvhöz:', url: link }).catch(() => {});
+    } else {
+      await navigator.clipboard.writeText(link).catch(() => {});
+      alert('A meghívó link a vágólapra került. Küldd el üzenetben.');
+    }
   } else if ('lepes' in gomb.dataset) {
     gomb.setAttribute('aria-pressed', gomb.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
   } else if ('torles' in gomb.dataset) {
@@ -1272,6 +1723,8 @@ app.addEventListener('click', async (e) => {
     if (r && confirm(`Biztosan törlöd ezt a receptet?\n\n${r.nev}`)) {
       await Tar.torol(id);
       sajatReceptek = sajatReceptek.filter((x) => x.id !== id);
+      jelol('recept', id, r.nev);
+      if (kepUrlek[id]) { kepBeallit(id, null); jelol('kep', id, r.nev); }
       location.replace('#/receptek');
     }
   } else if ('export' in gomb.dataset) {
@@ -1295,6 +1748,7 @@ app.addEventListener('click', async (e) => {
     hozzavaloMentes();
   } else if ('visszaallit' in gomb.dataset) {
     delete felulirasok[hForm.kulcs];
+    jelol('feluliras', hForm.kulcs, hForm.nev);
     sajatMent();
     adatFrissit();
     const kulcs = hForm.kulcs;
@@ -1305,6 +1759,7 @@ app.addEventListener('click', async (e) => {
     const kulcs = hForm.kulcs;
     if (confirm(`Biztosan törlöd ezt a hozzávalót?\n\n${hForm.nev}`)) {
       sajatHozzavalok = sajatHozzavalok.filter((s) => s.id !== kulcs);
+      jelol('hozzavalo', kulcs, hForm.nev);
       itthon.delete(kulcs);
       mentsItthon();
       sajatMent();
@@ -1324,6 +1779,8 @@ app.addEventListener('change', (e) => {
     kepFeldolgoz(e.target.dataset.kep, e.target.files[0]);
   } else if (e.target.matches('[data-cimke]') && e.target.files[0]) {
     cimkeOlvasas(e.target.files[0]);
+  } else if (e.target.matches('[data-kepbol]') && e.target.files[0]) {
+    kepbolOlvas(e.target.files[0]);
   }
 });
 
@@ -1360,6 +1817,7 @@ async function indul() {
   adatFrissit();
   await sajatBetolt();
   if (link) betolt(link); else rajzol();
+  szinkronizal();
 }
 
 if ('serviceWorker' in navigator) {

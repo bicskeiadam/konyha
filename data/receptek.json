@@ -1,8 +1,8 @@
 {
-  "verzio": 2,
+  "verzio": 3,
   "kategoriak": [
     { "id": "hus", "nev": "Hús, hal" },
-    { "id": "zoldseg", "nev": "Zöldség" },
+    { "id": "zoldseg", "nev": "Zöldség, gyümölcs" },
     { "id": "tej", "nev": "Tojás, tejtermék" },
     { "id": "kamra", "nev": "Kamra" }
   ],
@@ -32,13 +32,18 @@
     { "id": "brokkoli", "nev": "Brokkoli", "ikon": "🥦", "kat": "zoldseg", "kulcsok": [ "brokkoli", "brokoli" ] },
     { "id": "zoldbab", "nev": "Zöldbab", "ikon": "🥗", "kat": "zoldseg", "kulcsok": [ "zöldbab", "boranij", "mahun" ] },
     { "id": "kukorica", "nev": "Kukorica", "ikon": "🌽", "kat": "zoldseg", "kulcsok": [ "kukoric", "csemegekukoric", "kukuruz" ] },
+    { "id": "alma", "nev": "Alma", "ikon": "🍎", "kat": "zoldseg", "kulcsok": [ "alma", "almát", "almás", "jabuk" ] },
+    { "id": "meggy", "nev": "Meggy", "ikon": "🍒", "kat": "zoldseg", "kulcsok": [ "meggy", "višnj", "visnj", "višanj", "visanj" ] },
+    { "id": "szilva", "nev": "Szilva", "ikon": "🫐", "kat": "zoldseg", "kulcsok": [ "szilv", "šljiv", "sljiv" ] },
+    { "id": "banan", "nev": "Banán", "ikon": "🍌", "kat": "zoldseg", "kulcsok": [ "banán", "banan" ] },
     { "id": "tojas", "nev": "Tojás", "ikon": "🥚", "kat": "tej", "kulcsok": [ "tojás", "jaje", "jaja", "jajet", "jaj" ] },
     { "id": "tej", "nev": "Tej", "ikon": "🥛", "kat": "tej", "kulcsok": [ "=tej", "tejjel", "mleko", "mlijeko", "mleka", "mlijeka" ] },
     { "id": "tejfol", "nev": "Tejföl", "ikon": "🥣", "kat": "tej", "kulcsok": [ "tejföl", "pavlak", "kisela pavlaka", "vrhnje", "kiselo vrhnje" ] },
     { "id": "turo", "nev": "Túró", "ikon": "🧀", "kat": "tej", "kulcsok": [ "túró", "mladi sir", "svježi sir", "sveži sir", "posni sir" ] },
     { "id": "sajt", "nev": "Sajt", "ikon": "🧀", "kat": "tej", "kulcsok": [ "sajt", "parmezán", "parmezan", "mozzarell", "trappista", "gouda", "cheddar", "ementáli", "edami", "=sir", "=sira", "kačkavalj", "gauda" ] },
-    { "id": "vaj", "nev": "Vaj", "ikon": "🧈", "kat": "tej", "kulcsok": [ "=vaj", "vajjal", "vajat", "maslac", "putera", "puter" ] },
+    { "id": "vaj", "nev": "Vaj", "ikon": "🧈", "kat": "tej", "kulcsok": [ "=vaj", "vajjal", "vajat", "maslac", "putera", "puter", "margarin", "margarina" ] },
     { "id": "joghurt", "nev": "Joghurt", "ikon": "🍶", "kat": "tej", "kulcsok": [ "joghurt", "jogurt", "kiselo mlek", "kiselog mlek" ] },
+    { "id": "tejszin", "nev": "Tejszín", "ikon": "🥛", "kat": "tej", "kulcsok": [ "tejszín", "habtejszín", "főzőtejszín", "slatka pavlak", "slatke pavlak", "slatko vrhnj", "slatkog vrhnj", "mileram" ] },
     { "id": "liszt", "nev": "Liszt", "ikon": "🌾", "kat": "kamra", "kulcsok": [ "liszt", "brašn", "brasn" ] },
     { "id": "rizs", "nev": "Rizs", "ikon": "🍚", "kat": "kamra", "kulcsok": [ "rizs", "pirinač", "pirinac", "riža", "rižu", "riže" ] },
     { "id": "teszta", "nev": "Száraztészta", "ikon": "🍝", "kat": "kamra", "kulcsok": [ "tészta", "spagetti", "penne", "fusilli", "makaróni", "metélt", "csusza", "lasagne", "testenin", "špaget", "makaron", "rezanc", "tjestenin", "fusili" ] },
@@ -49,18 +54,50 @@
     { "id": "zsemlemorzsa", "nev": "Zsemlemorzsa", "ikon": "🥖", "kat": "kamra", "kulcsok": [ "zsemlemorzs", "morzsa", "panko", "prezl", "krušne mrvic", "kenyérmorzs" ] },
     { "id": "cukor", "nev": "Cukor", "ikon": "🍬", "kat": "kamra", "kulcsok": [ "cukor", "porcukor", "šećer", "secer" ] },
     { "id": "kenyer", "nev": "Kenyér", "ikon": "🍞", "kat": "kamra", "kulcsok": [ "kenyér", "kenyer", "zsemle", "kifli", "=hleb", "hleba", "hljeb", "=kruh", "kruha" ] },
+    { "id": "sutopor", "nev": "Sütőpor", "ikon": "🧁", "kat": "kamra", "kulcsok": [ "sütőpor", "prašak za pecivo", "praška za pecivo", "baking powder" ] },
+    { "id": "eleszto", "nev": "Élesztő", "ikon": "🍞", "kat": "kamra", "kulcsok": [ "élesztő", "kvasac", "kvasca", "kvascem" ] },
+    { "id": "kakao", "nev": "Kakaó", "ikon": "🍫", "kat": "kamra", "kulcsok": [ "kakaó", "kakao" ] },
+    { "id": "csokolade", "nev": "Csokoládé", "ikon": "🍫", "kat": "kamra", "kulcsok": [ "csokoládé", "csoki", "étcsoki", "čokolad", "cokolad", "chocolate" ] },
+    { "id": "vaniliascukor", "nev": "Vaníliás cukor", "ikon": "🍬", "kat": "kamra", "kulcsok": [ "vaníliás cukor", "vaníliáscukor", "vanillincukor", "vanilincukor", "vanilin šećer", "vanilin secer", "vanilin-šećer" ] },
+    { "id": "mak", "nev": "Mák", "ikon": "⚫", "kat": "kamra", "kulcsok": [ "=mák", "mákot", "mákkal", "darált mák", "=mak", "maka", "makom" ] },
+    { "id": "dio", "nev": "Dió", "ikon": "🌰", "kat": "kamra", "kulcsok": [ "=dió", "=diót", "dióval", "diós", "darált dió", "dióbél", "orah", "oraha", "orasi", "oraho", "mlevenih oraha" ] },
+    { "id": "zabpehely", "nev": "Zabpehely", "ikon": "🥣", "kat": "kamra", "kulcsok": [ "zabpehely", "zabpehelyliszt", "=zab", "zabliszt", "ovsen", "zoben", "zobenih" ] },
+    { "id": "feherjepor", "nev": "Fehérjepor", "ikon": "💪", "kat": "kamra", "kulcsok": [ "fehérjepor", "protein", "whey", "proteinsk" ] },
+    { "id": "mez", "nev": "Méz", "ikon": "🍯", "kat": "kamra", "kulcsok": [ "=méz", "mézet", "mézzel", "=med", "meda", "medom" ] },
+    { "id": "lekvar", "nev": "Lekvár", "ikon": "🍓", "kat": "kamra", "kulcsok": [ "lekvár", "dzsem", "pekmez", "džem", "dzem", "marmelad" ] },
+    { "id": "griz", "nev": "Búzadara", "ikon": "🌾", "kat": "kamra", "kulcsok": [ "búzadara", "gríz", "=dara", "griz" ] },
     { "id": "so", "nev": "Só", "ikon": "🧂", "alap": true, "kulcsok": [ "=só", "=sót", "sóval", "=so", "=soli", "=sol", "=sola" ] },
     { "id": "bors", "nev": "Bors", "ikon": "⚫", "alap": true, "kulcsok": [ "=bors", "borssal", "=biber", "=bibera", "=papar", "=papra" ] },
     { "id": "olaj", "nev": "Olaj", "ikon": "🫗", "alap": true, "kulcsok": [ "olaj", "=ulje", "=ulja", "=uljem", "zejtin" ] },
     { "id": "viz", "nev": "Víz", "ikon": "💧", "alap": true, "kulcsok": [ "=víz", "=vizet", "vízzel", "szódavíz", "ásványvíz", "=voda", "=vode", "=vodu", "=vodom", "mineralna voda", "mineralne vode" ] }
   ],
-  "tiltott": ["tejszín", "kókusztej", "kókuszt", "sütőtök", "babérlev", "sirće", "sirce", "slatka pavlak", "slatke pavlak", "slatko vrhnj", "slatkog vrhnj", "leveles tészt", "lisnato test", "lisnatog test", "kukoricaliszt", "praziluk", "póréhagym", "kakaópor", "vaníliás cukor", "zöldpaprika nélkül", "paradajz paprik", "kukoricakeményít", "gustin"],
+  "tiltott": ["kókusztej", "kókuszt", "sütőtök", "babérlev", "sirće", "sirce", "leveles tészt", "lisnato test", "lisnatog test", "kukoricaliszt", "praziluk", "póréhagym", "zöldpaprika nélkül", "paradajz paprik", "kukoricakeményít", "gustin"],
   "tapanyagValtozatok": {
-    "csirke": { "nev": "Csirke (egész, bőrrel)", "ikon": "🍗", "kat": "hus" },
-    "csirkemell": { "nev": "Csirkemell", "ikon": "🍗", "kat": "hus" },
-    "csirkecomb": { "nev": "Csirkecomb (bőrrel)", "ikon": "🍗", "kat": "hus" },
-    "sertes": { "nev": "Sertéslapocka", "ikon": "🥩", "kat": "hus" },
-    "olaj": { "nev": "Olaj", "ikon": "🫗", "kat": "kamra" }
+    "csirke": {
+      "nev": "Csirke (egész, bőrrel)",
+      "ikon": "🍗",
+      "kat": "hus"
+    },
+    "csirkemell": {
+      "nev": "Csirkemell",
+      "ikon": "🍗",
+      "kat": "hus"
+    },
+    "csirkecomb": {
+      "nev": "Csirkecomb (bőrrel)",
+      "ikon": "🍗",
+      "kat": "hus"
+    },
+    "sertes": {
+      "nev": "Sertéslapocka",
+      "ikon": "🥩",
+      "kat": "hus"
+    },
+    "olaj": {
+      "nev": "Olaj",
+      "ikon": "🫗",
+      "kat": "kamra"
+    }
   },
   "tapanyagok": {
     "_": "per 100 g, nyersen: [kcal, fehérje g, zsír g, szénhidrát g]",
@@ -111,7 +148,24 @@
     "olaj": [884, 0, 100, 0],
     "so": [0, 0, 0, 0],
     "bors": [0, 0, 0, 0],
-    "viz": [0, 0, 0, 0]
+    "viz": [0, 0, 0, 0],
+    "alma": [52, 0.3, 0.2, 13.8],
+    "meggy": [50, 1, 0.3, 12.2],
+    "szilva": [46, 0.7, 0.3, 11.4],
+    "banan": [89, 1.1, 0.3, 22.8],
+    "tejszin": [292, 2.1, 30.9, 2.9],
+    "sutopor": [53, 0, 0, 28],
+    "eleszto": [105, 8.4, 1.9, 18],
+    "kakao": [228, 19.6, 13.7, 57.9],
+    "csokolade": [598, 7.8, 42.6, 45.9],
+    "vaniliascukor": [400, 0, 0, 100],
+    "mak": [525, 18, 42, 28],
+    "dio": [654, 15.2, 65.2, 13.7],
+    "zabpehely": [379, 13.2, 6.5, 67.7],
+    "feherjepor": [390, 78, 6, 8],
+    "mez": [304, 0.3, 0, 82.4],
+    "lekvar": [250, 0.4, 0.1, 62],
+    "griz": [360, 12.7, 1, 72.8]
   },
   "receptek": [
     {
@@ -340,7 +394,8 @@
         "Lekvárral vagy kakaóval tálalod."
       ],
       "adagSzam": 5,
-      "megj": "A töltelék (lekvár, kakaó) nincs benne."
+      "megj": "A töltelék (lekvár, kakaó) nincs benne.",
+      "edes": true
     },
     {
       "id": "turos-csusza",
@@ -1234,6 +1289,425 @@
         "Rizzsel vagy salátával tálalod."
       ],
       "megj": "A köret nincs benne. A pácból csak a húsra tapadó részt számolja."
+    },
+    {
+      "id": "piskota",
+      "nev": "Piskóta",
+      "ikon": "🍰",
+      "ido": "45 perc",
+      "adag": "8 szelet",
+      "adagSzam": 8,
+      "egyseg": "szelet",
+      "edes": true,
+      "hozzavalok": [
+        {
+          "id": "tojas",
+          "menny": "6 db",
+          "g": 330
+        },
+        { "id": "cukor", "menny": "12 dkg", "g": 120 },
+        { "id": "liszt", "menny": "12 dkg", "g": 120 },
+        { "id": "vaniliascukor", "menny": "1 csomag", "g": 8 },
+        { "id": "so", "menny": "egy csipet", "g": 0 }
+      ],
+      "lepesek": [
+        "A sütőt 180 fokra előmelegíted, a formát kibéleled sütőpapírral.",
+        "A tojásokat szétválasztod. A fehérjét egy csipet sóval kemény habbá vered, majd apránként belevered a cukrot és a vaníliás cukrot.",
+        "Egyenként beledolgozod a sárgákat.",
+        "A lisztet szitán keresztül, óvatosan, alulról felfelé forgatva belekevered, hogy a hab ne törjön össze.",
+        "A formába simítod, és 25-30 percig sütöd. Akkor jó, ha a beleszúrt tűre nem ragad tészta."
+      ]
+    },
+    {
+      "id": "almas-pite",
+      "nev": "Almás pite",
+      "ikon": "🥧",
+      "ido": "1,5 óra",
+      "adag": "16 szelet",
+      "adagSzam": 16,
+      "egyseg": "szelet",
+      "edes": true,
+      "hozzavalok": [
+        {
+          "id": "liszt",
+          "menny": "50 dkg",
+          "g": 500
+        },
+        { "id": "vaj", "menny": "25 dkg (vagy margarin)", "g": 250 },
+        { "id": "cukor", "menny": "15 dkg (a tésztába)", "g": 150 },
+        { "id": "tojas", "menny": "1 db", "g": 55 },
+        { "id": "tejfol", "menny": "1 dl", "g": 100 },
+        { "id": "sutopor", "menny": "1 csomag", "g": 12 },
+        { "id": "vaniliascukor", "menny": "1 csomag", "g": 8 },
+        { "id": "alma", "menny": "1,5 kg", "g": 1500 },
+        { "id": "cukor", "menny": "5 dkg (a töltelékbe)", "g": 50 },
+        { "id": "zsemlemorzsa", "menny": "2 evőkanál", "g": 20 }
+      ],
+      "lepesek": [
+        "A lisztet, a vajat, a cukrot, a tojást, a tejfölt, a sütőport és a vaníliás cukrot sima tésztává gyúrod, és fél órára a hűtőbe teszed.",
+        "Az almát meghámozod, lereszeled, kinyomkodod a levét, és összekevered a cukorral.",
+        "A tésztát kettéosztod. Az egyik felét kinyújtod, egy kivajazott tepsibe teszed, és megszórod zsemlemorzsával.",
+        "Rásimítod az almát, majd befeded a másik, kinyújtott tésztalappal. A tetejét villával megszurkálod.",
+        "180 fokon kb. 40 percig sütöd, amíg aranybarna lesz. Kihűlve szeleteled."
+      ]
+    },
+    {
+      "id": "meggyes-pite",
+      "nev": "Meggyes pite",
+      "ikon": "🍒",
+      "ido": "1,5 óra",
+      "adag": "16 szelet",
+      "adagSzam": 16,
+      "egyseg": "szelet",
+      "edes": true,
+      "hozzavalok": [
+        {
+          "id": "liszt",
+          "menny": "50 dkg",
+          "g": 500
+        },
+        { "id": "vaj", "menny": "25 dkg (vagy margarin)", "g": 250 },
+        { "id": "cukor", "menny": "15 dkg (a tésztába)", "g": 150 },
+        { "id": "tojas", "menny": "2 db", "g": 110 },
+        { "id": "sutopor", "menny": "1 csomag", "g": 12 },
+        { "id": "meggy", "menny": "1 kg (magozott)", "g": 1000 },
+        { "id": "cukor", "menny": "8 dkg (a meggyre)", "g": 80 },
+        { "id": "zsemlemorzsa", "menny": "2 evőkanál", "g": 20 }
+      ],
+      "lepesek": [
+        "A lisztet, a vajat, a cukrot, a tojásokat és a sütőport sima tésztává gyúrod.",
+        "Kettéosztod. Az egyik felét kinyújtod, egy kivajazott tepsibe teszed, és megszórod zsemlemorzsával.",
+        "Elteríted rajta a lecsöpögtetett meggyet, és megszórod a cukorral.",
+        "Befeded a másik, kinyújtott tésztalappal, és a tetejét megszurkálod.",
+        "180 fokon kb. 40 percig sütöd. Kihűlve 16 szeletre vágod."
+      ]
+    },
+    {
+      "id": "kakaos-csiga",
+      "nev": "Kakaós csiga",
+      "ikon": "🥐",
+      "ido": "1,5 óra (+ kelesztés)",
+      "adag": "12 db",
+      "adagSzam": 12,
+      "egyseg": "db",
+      "edes": true,
+      "hozzavalok": [
+        {
+          "id": "liszt",
+          "menny": "50 dkg",
+          "g": 500
+        },
+        { "id": "tej", "menny": "2,5 dl (langyos)", "g": 250 },
+        { "id": "eleszto", "menny": "2,5 dkg", "g": 25 },
+        { "id": "cukor", "menny": "5 dkg (a tésztába)", "g": 50 },
+        { "id": "vaj", "menny": "8 dkg (a tésztába)", "g": 80 },
+        { "id": "tojas", "menny": "1 db", "g": 55 },
+        { "id": "so", "menny": "egy csipet", "g": 0 },
+        { "id": "kakao", "menny": "3 evőkanál", "g": 30 },
+        { "id": "cukor", "menny": "10 dkg (a töltelékbe)", "g": 100 },
+        { "id": "vaj", "menny": "5 dkg (a töltelékbe)", "g": 50 }
+      ],
+      "lepesek": [
+        "Az élesztőt a langyos tejben egy kevés cukorral felfuttatod.",
+        "A lisztet összegyúrod a tejjel, a cukorral, az olvasztott vajjal, a tojással és a sóval, amíg sima, rugalmas tészta lesz.",
+        "Letakarva meleg helyen kb. egy órát keleszted, amíg duplájára nő.",
+        "Téglalappá nyújtod, megkened az olvasztott vajjal, és megszórod a kakaóval elkevert cukorral.",
+        "Feltekered, 12 szeletre vágod, és sütőpapíros tepsibe teszed. Még 20 percig kelni hagyod.",
+        "180 fokon 20-25 percig sütöd."
+      ]
+    },
+    {
+      "id": "turogomboc",
+      "nev": "Túrógombóc",
+      "ikon": "🍡",
+      "ido": "45 perc",
+      "adag": "4 adag",
+      "adagSzam": 4,
+      "egyseg": "adag",
+      "edes": true,
+      "hozzavalok": [
+        {
+          "id": "turo",
+          "menny": "50 dkg",
+          "g": 500
+        },
+        { "id": "tojas", "menny": "2 db", "g": 110 },
+        { "id": "griz", "menny": "10 dkg", "g": 100 },
+        { "id": "zsemlemorzsa", "menny": "10 dkg (a forgatáshoz)", "g": 100 },
+        { "id": "vaj", "menny": "3 dkg", "g": 30 },
+        { "id": "tejfol", "menny": "2 dl (tálaláshoz)", "g": 200 },
+        { "id": "cukor", "menny": "3 evőkanál porcukor", "g": 36 },
+        { "id": "so", "menny": "egy csipet", "g": 0 }
+      ],
+      "lepesek": [
+        "A túrót villával összetöröd, és összekevered a tojással, a búzadarával és egy csipet sóval. Fél órára a hűtőbe teszed.",
+        "A zsemlemorzsát a vajon aranybarnára pirítod.",
+        "Vizes kézzel diónyi gombócokat formázol, és enyhén forrásban lévő, sós vízben 8-10 percig főzöd őket.",
+        "Leszűröd, és megforgatod a pirított morzsában.",
+        "Tejföllel és porcukorral tálalod."
+      ]
+    },
+    {
+      "id": "szilvas-gomboc",
+      "nev": "Szilvás gombóc",
+      "ikon": "🫐",
+      "ido": "1,5 óra",
+      "adag": "4 adag",
+      "adagSzam": 4,
+      "egyseg": "adag",
+      "edes": true,
+      "hozzavalok": [
+        {
+          "id": "krumpli",
+          "menny": "1 kg",
+          "g": 1000
+        },
+        { "id": "liszt", "menny": "30 dkg", "g": 300 },
+        { "id": "tojas", "menny": "1 db", "g": 55 },
+        { "id": "szilva", "menny": "40 dkg (kb. 20 szem)", "g": 400 },
+        { "id": "cukor", "menny": "5 dkg", "g": 50 },
+        { "id": "zsemlemorzsa", "menny": "10 dkg", "g": 100 },
+        { "id": "vaj", "menny": "5 dkg", "g": 50 },
+        { "id": "so", "menny": "egy csipet", "g": 0 }
+      ],
+      "lepesek": [
+        "A krumplit héjában megfőzöd, meghámozod, és még melegen áttöröd. Hagyod kihűlni.",
+        "Összegyúrod a liszttel, a tojással és egy csipet sóval.",
+        "A szilvákat kimagozod, és a magok helyére egy kevés cukrot teszel.",
+        "A tésztát kinyújtod, négyzetekre vágod, mindegyikbe egy szilvát teszel, és gombóccá formázod.",
+        "Sós vízben főzöd, amíg feljönnek, majd még 5 percig.",
+        "A zsemlemorzsát a vajon megpirítod, és megforgatod benne a gombócokat. Cukorral meghintve tálalod."
+      ]
+    },
+    {
+      "id": "makos-guba",
+      "nev": "Mákos guba",
+      "ikon": "🍞",
+      "ido": "30 perc",
+      "adag": "4 adag",
+      "adagSzam": 4,
+      "egyseg": "adag",
+      "edes": true,
+      "hozzavalok": [
+        {
+          "id": "kenyer",
+          "menny": "40 dkg kifli (szikkadt)",
+          "g": 400
+        },
+        { "id": "tej", "menny": "5 dl", "g": 500 },
+        { "id": "cukor", "menny": "8 dkg", "g": 80 },
+        { "id": "mak", "menny": "10 dkg (darált)", "g": 100 },
+        { "id": "vaniliascukor", "menny": "1 csomag", "g": 8 }
+      ],
+      "lepesek": ["A kiflit karikára vágod, és egy tűzálló tálba teszed.", "A tejet felmelegíted a cukor felével és a vaníliás cukorral, majd ráöntöd a kiflire.", "A mákot összekevered a maradék cukorral, és rászórod.", "180 fokos sütőben 10-15 percig sütöd, vagy melegen, sütés nélkül tálalod."]
+    },
+    {
+      "id": "tejberizs",
+      "nev": "Tejberizs",
+      "ikon": "🍚",
+      "ido": "35 perc",
+      "adag": "4 adag",
+      "adagSzam": 4,
+      "egyseg": "adag",
+      "edes": true,
+      "hozzavalok": [
+        {
+          "id": "rizs",
+          "menny": "20 dkg",
+          "g": 200
+        },
+        { "id": "tej", "menny": "1 liter", "g": 1000 },
+        { "id": "cukor", "menny": "8 dkg", "g": 80 },
+        { "id": "vaniliascukor", "menny": "1 csomag", "g": 8 },
+        { "id": "kakao", "menny": "a tetejére", "g": 10, "opcionalis": true }
+      ],
+      "lepesek": [
+        "A rizst megmosod.",
+        "A tejet felforralod a cukorral és a vaníliás cukorral, majd beleszórod a rizst.",
+        "Gyenge lángon, gyakran kevergetve kb. 25 percig főzöd, amíg a rizs megpuhul és a tej besűrűsödik.",
+        "Ha van, kakaóval megszórva tálalod."
+      ]
+    },
+    {
+      "id": "grizes-teszta",
+      "nev": "Grízes tészta",
+      "ikon": "🍝",
+      "ido": "30 perc",
+      "adag": "4 adag",
+      "adagSzam": 4,
+      "egyseg": "adag",
+      "edes": true,
+      "hozzavalok": [
+        {
+          "id": "teszta",
+          "menny": "40 dkg (kocka- vagy szélesmetélt)",
+          "g": 400
+        },
+        { "id": "griz", "menny": "15 dkg", "g": 150 },
+        { "id": "vaj", "menny": "5 dkg", "g": 50 },
+        { "id": "cukor", "menny": "6 dkg", "g": 60 },
+        { "id": "lekvar", "menny": "tálaláshoz", "g": 100, "opcionalis": true },
+        { "id": "so", "menny": "egy csipet", "g": 0 }
+      ],
+      "lepesek": ["A tésztát sós vízben kifőzöd, és leszűröd.", "A búzadarát a vajon, folyamatosan kevergetve aranybarnára pirítod.", "Összeforgatod a tésztával.", "Cukorral meghintve tálalod, és ha van, lekvárt adsz mellé."]
+    },
+    {
+      "id": "linzer",
+      "nev": "Linzer",
+      "ikon": "🍪",
+      "ido": "1 óra",
+      "adag": "30 db",
+      "adagSzam": 30,
+      "egyseg": "db",
+      "edes": true,
+      "hozzavalok": [
+        {
+          "id": "liszt",
+          "menny": "30 dkg",
+          "g": 300
+        },
+        { "id": "vaj", "menny": "20 dkg", "g": 200 },
+        { "id": "cukor", "menny": "10 dkg porcukor", "g": 100 },
+        { "id": "tojas", "menny": "1 tojás sárgája", "g": 20 },
+        { "id": "vaniliascukor", "menny": "1 csomag", "g": 8 },
+        { "id": "lekvar", "menny": "20 dkg", "g": 200 }
+      ],
+      "lepesek": [
+        "A lisztet, a hideg vajat, a porcukrot, a tojássárgáját és a vaníliás cukrot gyorsan tésztává gyúrod, és fél órára a hűtőbe teszed.",
+        "Lisztezett deszkán vékonyra nyújtod, és kiszaggatod. Minden második korong közepét is kiszúrod.",
+        "180 fokon 8-10 percig sütöd, amíg a széle épp csak színt kap.",
+        "Kihűlve lekvárral összeragasztod a teli és a lyukas korongokat."
+      ]
+    },
+    {
+      "id": "bogres-suti",
+      "nev": "Bögrés kakaós süti",
+      "ikon": "🍫",
+      "ido": "50 perc",
+      "adag": "16 szelet",
+      "adagSzam": 16,
+      "egyseg": "szelet",
+      "edes": true,
+      "hozzavalok": [
+        {
+          "id": "liszt",
+          "menny": "30 dkg",
+          "g": 300
+        },
+        { "id": "cukor", "menny": "25 dkg", "g": 250 },
+        { "id": "tej", "menny": "2,5 dl", "g": 250 },
+        { "id": "olaj", "menny": "1,25 dl", "g": 115 },
+        { "id": "tojas", "menny": "2 db", "g": 110 },
+        { "id": "kakao", "menny": "3 evőkanál", "g": 30 },
+        { "id": "sutopor", "menny": "1 csomag", "g": 12 }
+      ],
+      "lepesek": [
+        "A sütőt 180 fokra előmelegíted, a tepsit kibéleled sütőpapírral.",
+        "A száraz hozzávalókat összekevered egy tálban.",
+        "Hozzáadod a tejet, az olajat és a tojásokat, és csomómentesre kevered.",
+        "A tepsibe öntöd, és kb. 30 percig sütöd. Akkor jó, ha a beleszúrt tűre nem ragad tészta."
+      ]
+    },
+    {
+      "id": "banan-zabkeksz",
+      "nev": "Banános zabkeksz",
+      "ikon": "🍪",
+      "ido": "25 perc",
+      "adag": "12 db",
+      "adagSzam": 12,
+      "egyseg": "db",
+      "edes": true,
+      "hozzavalok": [
+        {
+          "id": "banan",
+          "menny": "2 db érett",
+          "g": 240
+        },
+        { "id": "zabpehely", "menny": "16 dkg", "g": 160 },
+        { "id": "mez", "menny": "1 evőkanál", "g": 20, "opcionalis": true },
+        { "id": "csokolade", "menny": "3 dkg (darabolva)", "g": 30, "opcionalis": true }
+      ],
+      "lepesek": [
+        "A sütőt 180 fokra előmelegíted.",
+        "A banánt villával pépesre töröd, és összekevered a zabpehellyel. Ha van, hozzáadod a mézet és a csokit.",
+        "Sütőpapíros tepsire 12 kis halmot teszel, és kicsit ellapítod őket.",
+        "15 percig sütöd, amíg a szélük megbarnul."
+      ]
+    },
+    {
+      "id": "proteines-zabpalacsinta",
+      "nev": "Proteines zabpalacsinta",
+      "ikon": "🥞",
+      "ido": "20 perc",
+      "adag": "2 adag",
+      "adagSzam": 2,
+      "egyseg": "adag",
+      "edes": true,
+      "hozzavalok": [
+        {
+          "id": "zabpehely",
+          "menny": "8 dkg",
+          "g": 80
+        },
+        { "id": "tojas", "menny": "2 db", "g": 110 },
+        { "id": "feherjepor", "menny": "3 dkg", "g": 30 },
+        { "id": "tej", "menny": "1 dl", "g": 100 },
+        { "id": "banan", "menny": "1 db", "g": 120 },
+        { "id": "olaj", "menny": "a sütéshez", "g": 10 }
+      ],
+      "lepesek": ["Mindent turmixgépbe teszel, és simára turmixolod.", "Egy serpenyőt kevés olajjal felforrósítasz.", "Kis adagokban kisütöd, oldalanként 1-2 percig, amíg aranybarna."]
+    },
+    {
+      "id": "feherjes-turokrem",
+      "nev": "Fehérjés túrókrém",
+      "ikon": "🥣",
+      "ido": "10 perc",
+      "adag": "2 adag",
+      "adagSzam": 2,
+      "egyseg": "adag",
+      "edes": true,
+      "hozzavalok": [
+        {
+          "id": "turo",
+          "menny": "25 dkg",
+          "g": 250
+        },
+        { "id": "joghurt", "menny": "1,5 dl", "g": 150 },
+        { "id": "feherjepor", "menny": "3 dkg", "g": 30 },
+        { "id": "mez", "menny": "1 evőkanál", "g": 20 },
+        { "id": "meggy", "menny": "10 dkg (a tetejére)", "g": 100, "opcionalis": true }
+      ],
+      "lepesek": ["A túrót a joghurttal, a fehérjeporral és a mézzel krémesre kevered.", "Két tálba osztod, és ha van, gyümölccsel tálalod."]
+    },
+    {
+      "id": "proteines-brownie",
+      "nev": "Proteines brownie",
+      "ikon": "🍫",
+      "ido": "30 perc",
+      "adag": "8 szelet",
+      "adagSzam": 8,
+      "egyseg": "szelet",
+      "edes": true,
+      "hozzavalok": [
+        {
+          "id": "banan",
+          "menny": "2 db érett",
+          "g": 240
+        },
+        { "id": "tojas", "menny": "2 db", "g": 110 },
+        { "id": "feherjepor", "menny": "6 dkg", "g": 60 },
+        { "id": "kakao", "menny": "3 dkg", "g": 30 },
+        { "id": "zabpehely", "menny": "5 dkg (lisztté darálva)", "g": 50 },
+        { "id": "sutopor", "menny": "1 teáskanál", "g": 5 },
+        { "id": "csokolade", "menny": "3 dkg", "g": 30, "opcionalis": true }
+      ],
+      "lepesek": [
+        "A sütőt 180 fokra előmelegíted.",
+        "A banánt villával összetöröd, és hozzákevered a tojásokat.",
+        "Belekevered a fehérjeport, a kakaót, a zabpelyhet és a sütőport.",
+        "Sütőpapíros formába öntöd, és ha van, a tetejére szórod a csokit.",
+        "18-20 percig sütöd. Kihűlve 8 szeletre vágod."
+      ]
     }
   ]
 }

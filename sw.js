@@ -22,14 +22,33 @@ self.addEventListener('install', (e) => {
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys()
-      .then((kulcsok) => Promise.all(kulcsok.filter((k) => k !== VERZIO).map((k) => caches.delete(k))))
+      .then((kulcsok) => Promise.all(kulcsok.filter((k) => k !== VERZIO && k !== 'megosztas').map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
 
+// Android's Share menu → Konyha. A shared image (e.g. an Instagram screenshot) is parked in a cache and
+// the app opens on "Recept képről"; a shared link or text goes to the link import as before.
+async function megosztas(keres) {
+  const alap = new URL('./', self.registration.scope).href;
+  const adat = await keres.formData();
+  const kep = adat.get('kep');
+  if (kep && kep.size) {
+    const c = await caches.open('megosztas');
+    await c.put('megosztott-kep', new Response(kep, { headers: { 'content-type': kep.type || 'image/jpeg' } }));
+    return Response.redirect(alap + '#/kepbol?megosztott=1', 303);
+  }
+  const szoveg = ['title', 'text', 'url'].map((k) => adat.get(k)).filter(Boolean).join(' ');
+  return Response.redirect(alap + '?text=' + encodeURIComponent(szoveg), 303);
+}
+
 self.addEventListener('fetch', (e) => {
-  if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
+  if (e.request.method === 'POST' && url.origin === location.origin && url.pathname.endsWith('/megosztas')) {
+    e.respondWith(megosztas(e.request));
+    return;
+  }
+  if (e.request.method !== 'GET') return;
   if (url.origin !== location.origin) return;
 
   // Answer instantly from the phone, refresh quietly in the background:

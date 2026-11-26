@@ -2,6 +2,7 @@
 //   GET  /?url=<recipe page>   → the recipe as JSON, with the photo inlined
 //   POST /cimke  {kep}         → nutrition per 100 g read from a photo of a package label
 //   POST /becsles {nev}        → typical nutrition per 100 g for an unpackaged food
+//   POST /szinkron, GET /kep, GET /naplo  → the shared family collection (header x-csalad: family code)
 // Only reads from the recipe sites below, and only answers the app's own origins.
 
 const ENGEDETT_OLDALAK = [
@@ -35,7 +36,7 @@ export default {
       'content-type': 'application/json; charset=utf-8',
       'access-control-allow-origin': ENGEDETT_ORIGINEK.includes(origin) ? origin : ENGEDETT_ORIGINEK[0],
       'access-control-allow-methods': 'GET, POST, OPTIONS',
-      'access-control-allow-headers': 'content-type',
+      'access-control-allow-headers': 'content-type, x-csalad',
       'vary': 'origin',
     };
     const valasz = (adat, statusz = 200) => new Response(JSON.stringify(adat), { status: statusz, headers: fejlec });
@@ -43,6 +44,37 @@ export default {
     if (keres.method === 'OPTIONS') return new Response(null, { headers: fejlec });
 
     const ut = new URL(keres.url).pathname;
+    if (ut === '/szinkron' || ut === '/kep' || ut === '/naplo') {
+      const csalad = await csaladAzonosito(keres.headers.get('x-csalad'), env);
+      if (!csalad) return valasz({ hiba: 'ismeretlen-csalad' }, 403);
+      if (ut === '/szinkron' && keres.method === 'POST') {
+        let test;
+        try { test = await keres.json(); } catch { return valasz({ hiba: 'rossz-keres' }, 400); }
+        return valasz(await szinkron(env.DB, csalad, test));
+      }
+      if (ut === '/kep') {
+        const sor = await env.DB.prepare("SELECT adat FROM elemek WHERE csalad = ? AND tipus = 'kep' AND id = ? AND torolve = 0")
+          .bind(csalad, new URL(keres.url).searchParams.get('id') || '').first();
+        return sor ? valasz({ adat: JSON.parse(sor.adat) }) : valasz({ hiba: 'nincs' }, 404);
+      }
+      if (ut === '/naplo') {
+        const { results } = await env.DB.prepare('SELECT ido, ki, mit, tipus, elem_id, cimke FROM naplo WHERE csalad = ? ORDER BY ido DESC LIMIT 60')
+          .bind(csalad).all();
+        return valasz({ naplo: results });
+      }
+    }
+
+    if (keres.method === 'POST' && ut === '/kepbol') {
+      if (!env.AI) return valasz({ hiba: 'nincs-ai' }, 500);
+      let test;
+      try { test = await keres.json(); } catch { return valasz({ hiba: 'rossz-keres' }, 400); }
+      if (typeof test.kep !== 'string' || !test.kep.startsWith('data:image/') || test.kep.length > 6_000_000) {
+        return valasz({ hiba: 'rossz-kep' }, 400);
+      }
+      const recept = await receptKeprol(env.AI, test.kep);
+      return recept ? valasz(recept) : valasz({ hiba: 'nem-talalhato' }, 422);
+    }
+
     if (keres.method === 'POST' && (ut === '/cimke' || ut === '/becsles')) {
       if (!env.AI) return valasz({ hiba: 'nincs-ai' }, 500);
       let test;
@@ -151,8 +183,12 @@ function normalizal(r, alap) {
     lepesek: rovidLepesek(lepesekbol(r.recipeInstructions)),
     ido: idoszoveg(r.totalTime) || osszeadIdo(r.prepTime, r.cookTime),
     adag: adagszoveg(r.recipeYield),
+    edes: EDES_MINTA.test([r.recipeCategory, r.keywords, r.name].flat().filter(Boolean).join(' ')),
   };
 }
+
+// Dessert by the site's own category/keywords (Hungarian, Serbian/Croatian, English).
+const EDES_MINTA = /desszert|sütemény|süti|torta|édesség|keksz|pite|kolač|kolac|poslastic|slatk|dessert|cake|cookie|brownie|muffin/i;
 
 function kepCim(kep, alap) {
   if (!kep) return null;
@@ -358,6 +394,140 @@ async function forditDarab(ai, darab) {
     if (!jo) throw new Error('rossz forma: ' + kulcs);
   }
   return json;
+}
+
+/* ---------- recipe from a screenshot or a photo of a page ---------- */
+
+const RECEPT_KEP_UTASITAS = `You read a recipe from an image: an Instagram or TikTok screenshot with the recipe in the caption,
+a photographed cookbook or magazine page, or handwritten notes. The text may be Hungarian, Serbian (Latin or Cyrillic),
+Croatian or English. Write everything in natural, simple Hungarian, as a Hungarian cookbook would.
+- Ingredients: one per line, keep the amounts and units ("2 db tojás", "30 g fehérjepor", "1 evőkanál méz").
+  Convert: kašika/žlica = evőkanál, kašičica/žličica = teáskanál, šolja = bögre, scoop = adag (keep the grams if given).
+  False friends: višnja = meggy, trešnja = cseresznye, pavlaka = tejföl, slatka pavlaka = tejszín.
+- Steps: one action per line, addressing the reader informally ("Összekevered a tojást a fehérjeporral.").
+- Ignore hashtags, emojis, "follow me", likes and comments.
+- edes = true for cakes, desserts, sweet pastries, sweet snacks.
+Answer with JSON only:
+{"nev": "...", "adag": number or null, "ido": "e.g. 30 perc" or "", "edes": true/false, "hozzavalok": ["..."], "lepesek": ["..."]}
+If there is no recipe in the image, answer {"hiba": "nincs-recept"}.`;
+
+async function receptKeprol(ai, kep) {
+  try {
+    const valasz = await Promise.race([
+      ai.run(CIMKE_MODELL, {
+        messages: [
+          { role: 'system', content: RECEPT_KEP_UTASITAS },
+          { role: 'user', content: [
+            { type: 'text', text: 'Read the recipe in this image.' },
+            { type: 'image_url', image_url: { url: kep } },
+          ] },
+        ],
+        max_tokens: 2500,
+        temperature: 0.1,
+        chat_template_kwargs: { enable_thinking: false },
+      }),
+      new Promise((_, nem) => setTimeout(() => nem(new Error('idotullepes')), 60000)),
+    ]);
+    const szoveg = aiSzoveg(valasz);
+    const json = JSON.parse(szoveg.slice(szoveg.indexOf('{'), szoveg.lastIndexOf('}') + 1));
+    if (json.hiba || !Array.isArray(json.hozzavalok) || !json.hozzavalok.length) return null;
+    // The model sometimes leaves out the portion count; fall back to "16 darabra vágod" / "na 16 komada" in the steps.
+    const lepesSzoveg = (json.lepesek || []).join(' ');
+    const talalt = lepesSzoveg.match(/(\d{1,2})\s*(darab|szelet|adag|rész|komad|porcij|parč)/i);
+    const adag = Number(json.adag) > 0 ? Math.round(Number(json.adag)) : (talalt ? +talalt[1] : null);
+    const recept = {
+      nev: tisztit(json.nev) || 'Recept',
+      ido: tisztit(json.ido),
+      adag: adag ? `${adag} adag` : '',
+      adagSzam: adag,
+      edes: Boolean(json.edes),
+      hozzavalok: json.hozzavalok.map(tisztit).filter(Boolean),
+      lepesek: rovidLepesek((json.lepesek || []).map(tisztit).filter(Boolean)),
+    };
+    return await helyesiras(ai, recept);
+  } catch {
+    return null;
+  }
+}
+
+// The image model reads well but slips in Hungarian spelling without "thinking" ("lis" for liszt),
+// which would also break ingredient matching. A quick pass with the text model fixes it.
+// If the pass fails or changes the number of lines, the unpolished version is kept.
+const HELYESIRAS_UTASITAS = `Javítsd ki a magyar helyesírást és a ragozást ebben a receptben. Ne változtass a tartalmon, a mennyiségeken
+és a sorok számán. A lépések tegező, kijelentő módban legyenek ("Összekevered", "Hagyod kihűlni").
+A nevet írd normál mondatkezdő nagybetűvel (ne csupa nagybetűvel). Csak a JSON-t add vissza ugyanazokkal a kulcsokkal.`;
+
+async function helyesiras(ai, recept) {
+  try {
+    const bemenet = { nev: recept.nev, hozzavalok: recept.hozzavalok, lepesek: recept.lepesek };
+    const valasz = await Promise.race([
+      ai.run(FORDITO_MODELL, {
+        messages: [{ role: 'system', content: HELYESIRAS_UTASITAS }, { role: 'user', content: JSON.stringify(bemenet) }],
+        max_tokens: 2500,
+        temperature: 0,
+        chat_template_kwargs: { enable_thinking: false },
+      }),
+      new Promise((_, nem) => setTimeout(() => nem(new Error('idotullepes')), 25000)),
+    ]);
+    const szoveg = aiSzoveg(valasz);
+    const j = JSON.parse(szoveg.slice(szoveg.indexOf('{'), szoveg.lastIndexOf('}') + 1));
+    if (typeof j.nev !== 'string' || j.hozzavalok?.length !== recept.hozzavalok.length || j.lepesek?.length !== recept.lepesek.length) return recept;
+    return { ...recept, nev: tisztit(j.nev), hozzavalok: j.hozzavalok.map(tisztit), lepesek: j.lepesek.map(tisztit) };
+  } catch {
+    return recept;
+  }
+}
+
+/* ---------- shared family collection (Cloudflare D1) ---------- */
+
+const TIPUSOK = new Set(['recept', 'hozzavalo', 'feluliras', 'kep']);
+const MAX_VALTOZAS = 50;
+
+// Only codes listed in the CSALAD_KODOK secret are accepted; the database only ever sees a hash of the code.
+async function csaladAzonosito(kod, env) {
+  const kodok = String(env.CSALAD_KODOK || '').split(',').map((k) => k.trim()).filter(Boolean);
+  if (!kod || !kodok.includes(kod.trim())) return null;
+  const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('konyha:' + kod.trim()));
+  return [...new Uint8Array(hash)].slice(0, 12).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+// One round trip: store this phone's changes (stamped with who and when, and logged),
+// then return everything that changed since this phone last synced. Photos come back without
+// their data; the app fetches each one from /kep when it needs it.
+async function szinkron(db, csalad, test) {
+  const ki = String(test.nev || '').trim().slice(0, 40) || 'Valaki';
+  const valtozasok = Array.isArray(test.valtozasok) ? test.valtozasok.slice(0, MAX_VALTOZAS) : [];
+  const most = Date.now();
+  const utasitasok = [];
+
+  for (const v of valtozasok) {
+    if (!TIPUSOK.has(v.tipus) || typeof v.id !== 'string' || !v.id || v.id.length > 80) continue;
+    const adat = v.torolve ? null : JSON.stringify(v.adat ?? null);
+    if (adat && adat.length > 1_500_000) continue;
+    const regi = await db.prepare('SELECT torolve FROM elemek WHERE csalad = ? AND tipus = ? AND id = ?').bind(csalad, v.tipus, v.id).first();
+    utasitasok.push(db.prepare(`
+      INSERT INTO elemek (csalad, tipus, id, adat, torolve, letrehozta, letrehozva, modositotta, modositva)
+      VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?6, ?7)
+      ON CONFLICT (csalad, tipus, id) DO UPDATE SET
+        adat = excluded.adat, torolve = excluded.torolve, modositotta = excluded.modositotta, modositva = excluded.modositva`)
+      .bind(csalad, v.tipus, v.id, adat, v.torolve ? 1 : 0, ki, most));
+    const mit = v.torolve ? 'torolte' : (regi && !regi.torolve ? 'modositotta' : 'hozzaadta');
+    utasitasok.push(db.prepare('INSERT INTO naplo (csalad, ido, ki, mit, tipus, elem_id, cimke) VALUES (?, ?, ?, ?, ?, ?, ?)')
+      .bind(csalad, most, ki, mit, v.tipus, v.id, String(v.cimke || '').slice(0, 120)));
+  }
+  if (utasitasok.length) await db.batch(utasitasok);
+
+  // A small overlap (and >=) so a change written in the same millisecond as the last sync is never missed.
+  const ota = Math.max(0, Number(test.ota) || 0) - 2000;
+  const { results } = await db.prepare(`
+    SELECT tipus, id, CASE WHEN tipus = 'kep' THEN NULL ELSE adat END AS adat, torolve,
+           letrehozta, letrehozva, modositotta, modositva
+    FROM elemek WHERE csalad = ? AND modositva >= ? ORDER BY modositva`).bind(csalad, ota).all();
+  return {
+    most,
+    elemek: results.map((r) => ({ ...r, adat: r.adat ? JSON.parse(r.adat) : null, torolve: Boolean(r.torolve) })),
+    tobb: valtozasok.length < (Array.isArray(test.valtozasok) ? test.valtozasok.length : 0),
+  };
 }
 
 /* ---------- nutrition: package labels and estimates ---------- */

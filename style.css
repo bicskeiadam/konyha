@@ -134,6 +134,32 @@ button:active, .fajl-gomb:active { transform: scale(.98); }
 .menu-gomb.fo .menu-cim { font-size: 30px; }
 .menu-gomb.fo .menu-leiras, .menu-gomb.fo .menu-nyil { color: #fff; opacity: .92; }
 
+.halk-link {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  align-self: center;
+  min-height: 48px;
+  padding: 6px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--halvany);
+  font-size: 18px;
+  font-weight: 600;
+}
+.halk-link .i { font-size: 22px; }
+
+/* Family */
+.recept-kartya .szerzo-sor { display: flex; align-items: center; gap: 4px; font-size: 16px; color: var(--halvany); margin-top: 2px; }
+.naplo { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.naplo li {
+  padding: 10px 14px;
+  border: 2px solid var(--szegely);
+  border-radius: var(--r);
+  background: var(--felulet);
+  font-size: 18px;
+  line-height: 1.35;
+}
+.naplo-ido { display: block; font-size: 15px; color: var(--halvany); }
+
 /* Photo picker: camera + gallery */
 .kep-valaszto .nagykep { margin-top: 0; }
 .kep-ures {
