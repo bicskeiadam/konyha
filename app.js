@@ -122,10 +122,10 @@ function tapanyagOldal() {
   app.innerHTML = `
     ${vissza()}
     <h1>Tápérték</h1>
-    <p class="alcim">100 gramm nyers hozzávalóban.</p>
     <div class="szuro-sor">${MERTEKEK.map((x) =>
       `<button class="szuro" data-rendez="${x.kulcs}" aria-pressed="${x.kulcs === tapSzerint}">${esc(x.nev)}</button>`).join('')}</div>
     <p class="tipp">${m.tobbJobb ? 'Elöl az, amiben a legtöbb van.' : 'Elöl az, amiben a legkevesebb van.'}</p>
+    <div class="tap-fejlec"><span>100 grammban<small>nyersen</small></span></div>
     <ul class="tap-lista">${lista}</ul>`;
 }
 

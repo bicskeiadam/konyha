@@ -236,7 +236,19 @@ button { font: inherit; color: inherit; cursor: pointer; }
   font-size: 18px;
 }
 .szuro[aria-pressed="true"] { background: var(--fo); border-color: var(--fo); color: #fff; font-weight: 700; }
-.tap-lista { list-style: none; padding: 0; margin: 16px 0 0; display: grid; gap: 8px; }
+.tap-fejlec { display: flex; justify-content: flex-end; margin: 16px 16px 6px 0; }
+.tap-fejlec span {
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: var(--fo);
+  color: #fff;
+  font-size: 17px;
+  font-weight: 800;
+  text-align: center;
+  line-height: 1.15;
+}
+.tap-fejlec small { display: block; font-size: 14px; font-weight: 500; opacity: .9; }
+.tap-lista { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
 .tap-elem {
   display: flex; align-items: center; gap: 12px;
   padding: 12px 14px;
