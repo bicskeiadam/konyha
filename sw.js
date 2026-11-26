@@ -7,6 +7,7 @@ const ALKALMAZAS = [
   'index.html',
   'style.css',
   'app.js',
+  'illeszto.js',
   'manifest.webmanifest',
   'icons/icon-192.png',
   'icons/icon-512.png',

@@ -195,3 +195,51 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .lepesek button[aria-pressed="true"] { opacity: .45; }
 .lepesek button[aria-pressed="true"] .szam { background: var(--van); }
 .tipp { color: var(--halvany); font-size: 17px; margin: -4px 0 12px; }
+.tipp-kozep { text-align: center; margin: 14px 0 0; }
+
+/* Imported recipes: photos */
+.kiskep { width: 64px; height: 64px; border-radius: 14px; object-fit: cover; flex: none; }
+.nagykep {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--sarok);
+  margin: 8px 0 12px;
+  background: var(--szegely);
+}
+.sor-szoveg { flex: 1; }
+.forras { color: var(--halvany); font-size: 17px; margin-top: 28px; }
+.forras a { color: var(--fo-sotet); }
+
+/* New recipe form */
+.cimke { display: block; font-weight: 700; margin: 16px 0 6px; }
+.mezo {
+  display: block;
+  width: 100%;
+  min-height: 60px;
+  padding: 10px 14px;
+  border: 3px solid var(--szegely);
+  border-radius: 14px;
+  background: var(--kartya);
+  font: inherit;
+  color: inherit;
+}
+.mezo:focus { outline: none; border-color: var(--fo); }
+.nagy-gomb.kozepen { margin-top: 14px; }
+.nagy-gomb:disabled { opacity: .6; }
+.hiba-uzenet { color: var(--nincs); border-color: #fecaca; background: var(--nincs-hatter); border-style: solid; }
+.hozzavalok .import-sor { flex-direction: column; align-items: stretch; gap: 8px; }
+.valaszto {
+  width: 100%;
+  min-height: 48px;
+  padding: 6px 10px;
+  border: 2px solid var(--szegely);
+  border-radius: 12px;
+  background: var(--hatter);
+  font: inherit;
+  font-size: 18px;
+  color: inherit;
+}
+.halk-gomb.balra { margin: 10px 0 0; width: 100%; }
+.fajl-gomb { text-align: center; cursor: pointer; }
