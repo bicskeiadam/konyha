@@ -49,10 +49,10 @@
     { "id": "zsemlemorzsa", "nev": "Zsemlemorzsa", "ikon": "🥖", "kat": "kamra", "kulcsok": [ "zsemlemorzs", "morzsa", "panko", "prezl", "krušne mrvic", "kenyérmorzs" ] },
     { "id": "cukor", "nev": "Cukor", "ikon": "🍬", "kat": "kamra", "kulcsok": [ "cukor", "porcukor", "šećer", "secer" ] },
     { "id": "kenyer", "nev": "Kenyér", "ikon": "🍞", "kat": "kamra", "kulcsok": [ "kenyér", "kenyer", "zsemle", "kifli", "=hleb", "hleba", "hljeb", "=kruh", "kruha" ] },
-    { "id": "so", "nev": "Só", "alap": true, "kulcsok": [ "=só", "=sót", "sóval", "=so", "=soli", "=sol", "=sola" ] },
-    { "id": "bors", "nev": "Bors", "alap": true, "kulcsok": [ "=bors", "borssal", "=biber", "=bibera", "=papar", "=papra" ] },
-    { "id": "olaj", "nev": "Olaj", "alap": true, "kulcsok": [ "olaj", "=ulje", "=ulja", "=uljem", "zejtin" ] },
-    { "id": "viz", "nev": "Víz", "alap": true, "kulcsok": [ "=víz", "=vizet", "vízzel", "szódavíz", "ásványvíz", "=voda", "=vode", "=vodu", "=vodom", "mineralna voda", "mineralne vode" ] }
+    { "id": "so", "nev": "Só", "ikon": "🧂", "alap": true, "kulcsok": [ "=só", "=sót", "sóval", "=so", "=soli", "=sol", "=sola" ] },
+    { "id": "bors", "nev": "Bors", "ikon": "⚫", "alap": true, "kulcsok": [ "=bors", "borssal", "=biber", "=bibera", "=papar", "=papra" ] },
+    { "id": "olaj", "nev": "Olaj", "ikon": "🫗", "alap": true, "kulcsok": [ "olaj", "=ulje", "=ulja", "=uljem", "zejtin" ] },
+    { "id": "viz", "nev": "Víz", "ikon": "💧", "alap": true, "kulcsok": [ "=víz", "=vizet", "vízzel", "szódavíz", "ásványvíz", "=voda", "=vode", "=vodu", "=vodom", "mineralna voda", "mineralne vode" ] }
   ],
   "tiltott": ["tejszín", "kókusztej", "kókuszt", "sütőtök", "babérlev", "sirće", "sirce", "slatka pavlak", "slatke pavlak", "slatko vrhnj", "slatkog vrhnj", "leveles tészt", "lisnato test", "lisnatog test", "kukoricaliszt", "praziluk", "póréhagym", "kakaópor", "vaníliás cukor", "zöldpaprika nélkül", "paradajz paprik", "kukoricakeményít", "gustin"],
   "tapanyagValtozatok": {

@@ -22,8 +22,21 @@ const gorgetesek = {};
 let importalas = { allapot: 'ures', link: '', recept: null, hiba: '' };
 
 // The hand-written recipe form keeps its text while she moves between screens.
-const uresKezi = () => ({ nev: '', ido: '', adag: '4', hozzavalok: '', lepesek: '', kepBlob: null, kepUrl: null, hiba: '' });
-let kezi = uresKezi();
+// sorok: [{ id, mennyiseg, egyseg }] for ingredients from the list, [{ szoveg }] for anything else.
+// valasztott / szerkesztIndex: the ingredient picker's state (which one she tapped, which row she is changing).
+const uresKezi = () => ({
+  nev: '', ido: '', adag: '4', sorok: [], lepesek: '', kepBlob: null, kepUrl: null, hiba: '',
+  valasztott: null, szerkesztIndex: null, mennyiseg: '', egyseg: '', egyebSzoveg: '',
+});
+// The draft survives the app being closed (Android may close it while the camera is open).
+// The photo itself is not kept, only the text and the ingredient list.
+const PISZKOZAT_KULCS = 'konyha.keziPiszkozat';
+let kezi = { ...uresKezi(), ...JSON.parse(localStorage.getItem(PISZKOZAT_KULCS) || '{}'), hiba: '' };
+
+function keziPiszkozatMent() {
+  const { kepBlob, kepUrl, hiba, ...szoveg } = kezi;
+  localStorage.setItem(PISZKOZAT_KULCS, JSON.stringify(szoveg));
+}
 // After saving, the phone's back button would land on the emptied form; send it to the menu instead.
 let keziMentve = false;
 
@@ -55,14 +68,21 @@ function hianyzik(recept) {
 
 // Optional ingredients ("ha van") only count when they're ticked as being at home,
 // so the numbers match what she'll actually put in the pot.
+// Built-in recipes have grams on every line. Her own recipes may also have plain-text lines with no amount:
+// those are left out and listed under the table. Imported recipes have no grams at all, so no table.
 function tapertek(recept) {
-  if (recept.sajat || !adat.tapanyagok || !recept.hozzavalok.every((h) => typeof h.g === 'number')) return null;
+  if (!adat.tapanyagok) return null;
+  const szamolhato = (h) => h.id && typeof h.g === 'number';
+  const sorok = recept.hozzavalok.filter(szamolhato);
+  if (!sorok.length || (!recept.sajat && sorok.length !== recept.hozzavalok.length)) return null;
+  const nevE = (h) => hozzavaloById[h.id]?.nev || h.szoveg || '';
+  const nemSzamolt = recept.hozzavalok.filter((h) => !szamolhato(h)).map(nevE).filter(Boolean);
   const osszes = { kcal: 0, feherje: 0, zsir: 0, szenhidrat: 0 };
   const kimaradt = [];
   const benne = [];
-  for (const h of recept.hozzavalok) {
-    if (h.opcionalis && !itthon.has(h.id)) { kimaradt.push(hozzavaloById[h.id].nev); continue; }
-    if (h.opcionalis) benne.push(hozzavaloById[h.id].nev);
+  for (const h of sorok) {
+    if (h.opcionalis && !itthon.has(h.id)) { kimaradt.push(nevE(h)); continue; }
+    if (h.opcionalis) benne.push(nevE(h));
     const [kcal, feherje, zsir, szenhidrat] = adat.tapanyagok[h.t || h.id] || [0, 0, 0, 0];
     const x = h.g / 100;
     osszes.kcal += kcal * x;
@@ -72,7 +92,7 @@ function tapertek(recept) {
   }
   const n = recept.adagSzam || 4;
   const adag = Object.fromEntries(Object.entries(osszes).map(([k, v]) => [k, v / n]));
-  return { osszes, adag, adagSzam: n, kimaradt: [...new Set(kimaradt)], benne: [...new Set(benne)] };
+  return { osszes, adag, adagSzam: n, kimaradt: [...new Set(kimaradt)], benne: [...new Set(benne)], nemSzamolt };
 }
 
 const kerekKcal = (v) => Math.round(v / 10) * 10;
@@ -498,6 +518,77 @@ function itthonOldal() {
     </div>`;
 }
 
+/* ---------- Units: what she types → grams for the nutrition table ---------- */
+
+const EGYSEGEK = {
+  g: { nev: 'g', g: 1 },
+  dkg: { nev: 'dkg', g: 10 },
+  kg: { nev: 'kg', g: 1000 },
+  ml: { nev: 'ml', g: 1 },
+  dl: { nev: 'dl', g: 100 },
+  l: { nev: 'liter', g: 1000 },
+  ek: { nev: 'evőkanál', g: 15 },
+  tk: { nev: 'teáskanál', g: 5 },
+  izles: { nev: 'ízlés szerint', g: 0 },
+};
+// Liquids, measured in dl/ml/liter (taken as 1 g per ml).
+const FOLYEKONY = new Set(['tej', 'tejfol', 'joghurt', 'olaj', 'viz', 'paradicsomszosz']);
+// Things counted by the piece: [grams per piece, what one piece is called].
+const DARAB = {
+  tojas: [55, 'db'], hagyma: [120, 'fej'], fokhagyma: [5, 'gerezd'], krumpli: [150, 'db'], paprika: [100, 'db'],
+  paradicsom: [120, 'db'], repa: [80, 'db'], petrezselyem: [80, 'db'], kenyer: [40, 'szelet'], tonhal: [120, 'konzerv'],
+  kukorica: [140, 'konzerv'], karfiol: [1000, 'fej'], brokkoli: [400, 'fej'], kaposzta: [1000, 'fej'], tok: [400, 'db'],
+};
+const FUSZER = new Set(['so', 'bors', 'pirospaprika']);
+
+function egysegek(id) {
+  const lista = ['g', 'dkg', 'kg'];
+  if (FOLYEKONY.has(id)) lista.push('ml', 'dl', 'l');
+  if (DARAB[id]) lista.push('db');
+  lista.push('ek', 'tk', 'izles');
+  return lista;
+}
+
+function alapEgyseg(id) {
+  if (id === 'so' || id === 'bors') return 'izles';
+  if (FUSZER.has(id)) return 'tk';
+  if (DARAB[id]) return 'db';
+  if (FOLYEKONY.has(id)) return id === 'olaj' ? 'ek' : 'dl';
+  return 'dkg';
+}
+
+const egysegNev = (id, e) => (e === 'db' ? DARAB[id][1] : EGYSEGEK[e].nev);
+const szamBol = (s) => parseFloat(String(s).replace(',', '.'));
+
+function grammra(id, mennyiseg, e) {
+  if (e === 'izles') return 0;
+  const n = szamBol(mennyiseg);
+  return Math.round(n * (e === 'db' ? DARAB[id][0] : EGYSEGEK[e].g));
+}
+
+function mennyisegSzoveg(sor) {
+  const resz = sor.t && RESZEK[sor.id] ? RESZEK[sor.id].find(([t]) => t === sor.t) : null;
+  const ut = resz ? `, ${resz[1].toLowerCase()}` : '';
+  if (sor.egyseg === 'izles') return 'ízlés szerint' + ut;
+  return `${String(sor.mennyiseg).replace('.', ',')} ${egysegNev(sor.id, sor.egyseg)}${ut}`;
+}
+
+/* ---------- Hand-written recipe form ---------- */
+
+function keziSor(sor, i) {
+  const h = sor.id ? hozzavaloById[sor.id] : null;
+  const nev = h ? h.nev : sor.szoveg;
+  return `
+    <li class="kezi-sor">
+      <button class="kezi-sor-gomb" data-kezi-szerk="${i}" ${h ? '' : 'disabled'}>
+        <span class="ikon" aria-hidden="true">${h ? (h.ikon || '🥄') : '📝'}</span>
+        <span class="kezi-sor-nev">${esc(nev)}</span>
+        ${h ? `<span class="kezi-sor-menny">${esc(mennyisegSzoveg(sor))}</span>` : '<span class="kezi-sor-menny">szövegként</span>'}
+      </button>
+      <button class="kezi-sor-torol" data-kezi-torol="${i}" aria-label="${esc(nev)} törlése">${ikon('x')}</button>
+    </li>`;
+}
+
 function keziOldal() {
   const k = kezi;
   app.innerHTML = `
@@ -518,48 +609,159 @@ function keziOldal() {
         <input id="k-adag" class="mezo" data-kezi="adag" value="${esc(k.adag)}" type="number" inputmode="numeric" min="1" max="30">
       </div>
     </div>
-    <label class="cimke" for="k-hozz">Hozzávalók</label>
-    <p class="tipp">Soronként egyet írj, például: 2 fej vöröshagyma</p>
-    <textarea id="k-hozz" class="mezo szoveg-mezo" data-kezi="hozzavalok" rows="6">${esc(k.hozzavalok)}</textarea>
+    <h2>Hozzávalók</h2>
+    ${k.sorok.length
+      ? `<ul class="kezi-lista">${k.sorok.map(keziSor).join('')}</ul><p class="tipp">Koppints egy hozzávalóra, ha a mennyiségét változtatnád.</p>`
+      : '<p class="uzenet">Még nincs hozzávaló.</p>'}
+    <button class="halk-gomb balra" data-kezi-uj>${ikon('plus')} Hozzávaló hozzáadása</button>
     <label class="cimke" for="k-lep">Elkészítés</label>
     <p class="tipp">Soronként egy lépést írj.</p>
     <textarea id="k-lep" class="mezo szoveg-mezo" data-kezi="lepesek" rows="6">${esc(k.lepesek)}</textarea>
     <button class="halk-gomb" data-ugras="#/uj">${ikon('link-simple')} Inkább linkből töltöm be</button>
     <div class="also-sav">
-      <button class="nagy-gomb" data-kezi-tovabb>${ikon('arrow-right')}<span class="gomb-szoveg">Tovább</span></button>
+      <button class="nagy-gomb" data-kezi-mentes>${ikon('check')}<span class="gomb-szoveg">Recept mentése</span></button>
     </div>`;
+}
+
+// Picker: a searchable list of every ingredient, then an amount step for the one she tapped.
+function keziValasztoOldal() {
+  const k = kezi;
+  if (k.valasztott) {
+    const h = hozzavaloById[k.valasztott];
+    if (!h) { k.valasztott = null; return keziValasztoOldal(); }
+    const egysegGombok = egysegek(h.id).map((e) =>
+      `<button class="szuro" data-kezi-egyseg="${e}" aria-pressed="${k.egyseg === e}">${esc(egysegNev(h.id, e))}</button>`).join('');
+    app.innerHTML = `
+      ${vissza()}
+      <div class="recept-fej"><span class="ikon" aria-hidden="true">${h.ikon || '🥄'}</span><h1>${esc(h.nev)}</h1></div>
+      ${k.hiba ? `<p class="uzenet hiba-uzenet">${esc(k.hiba)}</p>` : ''}
+      ${RESZEK[h.id] ? `
+        <p class="szuro-cim">Melyik része?</p>
+        <div class="szuro-sor egyseg-sor">${RESZEK[h.id].map(([t, felirat]) =>
+          `<button class="szuro" data-kezi-resz="${t}" aria-pressed="${k.resz === t}">${esc(felirat)}</button>`).join('')}</div>` : ''}
+      ${k.egyseg === 'izles' ? '' : `
+        <label class="cimke" for="k-menny">Mennyi?</label>
+        <input id="k-menny" class="mezo nagy-mezo" data-kezi="mennyiseg" value="${esc(k.mennyiseg)}" inputmode="decimal" autocomplete="off">`}
+      <p class="szuro-cim">Miben?</p>
+      <div class="szuro-sor egyseg-sor">${egysegGombok}</div>
+      <button class="halk-gomb balra" data-kezi-masik>Másikat választok</button>
+      <div class="also-sav">
+        <button class="nagy-gomb" data-kezi-hozzaad>${ikon('check')}<span class="gomb-szoveg">${k.szerkesztIndex == null ? 'Hozzáadom' : 'Módosítom'}</span></button>
+      </div>`;
+    return;
+  }
+
+  const csoportok = [...adat.kategoriak, { id: '_alap', nev: 'Alapok' }].map((kat) => {
+    const elemek = adat.hozzavalok.filter((h) => (kat.id === '_alap' ? h.alap : h.kat === kat.id && !h.alap));
+    if (!elemek.length) return '';
+    return `
+      <div class="valaszto-csoport">
+        <h2>${esc(kat.nev)}</h2>
+        <div class="racs">${elemek.map((h) => `
+          <button class="csempe" data-kezi-valaszt="${h.id}" data-kereso="${esc(window.Illeszto.normal(h.nev))}">
+            <span class="ikon" aria-hidden="true">${h.ikon || '🧂'}</span>
+            <span>${esc(h.nev)}</span>
+          </button>`).join('')}
+        </div>
+      </div>`;
+  }).join('');
+
+  app.innerHTML = `
+    ${vissza()}
+    <h1>Hozzávaló hozzáadása</h1>
+    <label class="cimke" for="k-keres">Keresés</label>
+    <input id="k-keres" class="mezo" data-kezi-keres type="search" autocomplete="off">
+    ${csoportok}
+    <p class="uzenet nincs-talalat" hidden>Nincs ilyen a listában. Lent beírhatod szövegként.</p>
+    <h2>Nincs a listában?</h2>
+    <p class="tipp">Írd be szövegként, például: 1 csomag sütőpor. Ez nem számít bele a tápértékbe.</p>
+    <input class="mezo" data-kezi="egyebSzoveg" value="${esc(k.egyebSzoveg)}" aria-label="Hozzávaló szövegként" autocomplete="off">
+    <button class="halk-gomb balra" data-kezi-egyeb>${ikon('plus')} Hozzáadom szövegként</button>`;
+}
+
+// Hides tiles that don't match the search, without redrawing (so the keyboard stays open).
+function keziKeres(szoveg) {
+  const n = window.Illeszto.normal(szoveg).trim();
+  let lathato = 0;
+  for (const csoport of app.querySelectorAll('.valaszto-csoport')) {
+    let csoportban = 0;
+    for (const t of csoport.querySelectorAll('[data-kereso]')) {
+      const jo = !n || t.dataset.kereso.includes(n);
+      t.hidden = !jo;
+      if (jo) csoportban++;
+    }
+    csoport.hidden = !csoportban;
+    lathato += csoportban;
+  }
+  app.querySelector('.nincs-talalat').hidden = lathato > 0;
+}
+
+// Ingredients whose values depend on the cut: [nutrition key, label]. Breast is the default for chicken.
+const RESZEK = {
+  csirke: [['csirkemell', 'Mell'], ['csirkecomb', 'Comb'], ['csirke', 'Egész']],
+};
+
+function keziValaszt(id, index = null) {
+  const sor = index != null ? kezi.sorok[index] : null;
+  kezi.valasztott = id;
+  kezi.szerkesztIndex = index;
+  kezi.egyseg = sor ? sor.egyseg : alapEgyseg(id);
+  kezi.mennyiseg = sor ? String(sor.mennyiseg) : '';
+  kezi.resz = sor ? sor.t : (RESZEK[id] ? RESZEK[id][0][0] : null);
+  kezi.hiba = '';
+}
+
+function keziHozzaad() {
+  const k = kezi;
+  const n = szamBol(k.mennyiseg);
+  if (k.egyseg !== 'izles' && !(n > 0)) {
+    k.hiba = 'Írd be, mennyi kell belőle.';
+    return rajzolMarad();
+  }
+  const sor = { id: k.valasztott, mennyiseg: k.egyseg === 'izles' ? '' : String(n), egyseg: k.egyseg, ...(k.resz ? { t: k.resz } : {}) };
+  if (k.szerkesztIndex != null) k.sorok[k.szerkesztIndex] = sor; else k.sorok.push(sor);
+  k.valasztott = null;
+  k.szerkesztIndex = null;
+  k.hiba = '';
+  if (history.length > 1) history.back(); else location.replace('#/kezi');
 }
 
 const sorokra = (s) => String(s).split(/\n+/).map((x) => x.trim()).filter(Boolean);
 
-// Hand-written recipes go through the same check screen as imports, so ingredients get matched to buttons.
-function keziTovabb() {
-  const hozzavalok = sorokra(kezi.hozzavalok);
-  if (!kezi.nev.trim() || !hozzavalok.length) {
-    kezi.hiba = !kezi.nev.trim() ? 'Írd be a recept nevét.' : 'Írj be legalább egy hozzávalót.';
+async function keziMentes(gomb) {
+  const k = kezi;
+  if (!k.nev.trim() || !k.sorok.length) {
+    k.hiba = !k.nev.trim() ? 'Írd be a recept nevét.' : 'Adj hozzá legalább egy hozzávalót.';
     keziOldal();
     window.scrollTo(0, 0);
     return;
   }
-  kezi.hiba = '';
-  const adagSzam = Math.max(1, parseInt(kezi.adag, 10) || 4);
-  importalas = {
-    allapot: 'elonezet',
-    link: '',
-    hiba: '',
-    recept: {
-      kezi: true,
-      nev: kezi.nev.trim(),
-      ido: kezi.ido.trim(),
-      adag: `${adagSzam} adag`,
-      forras: null,
-      lepesek: sorokra(kezi.lepesek),
-      hozzavalok: hozzavalok.map((szoveg) => ({ szoveg, id: illeszt(szoveg), opcionalis: OPCIONALIS.test(szoveg) || undefined })),
-      kepBlob: kezi.kepBlob,
-      kepUrl: kezi.kepUrl,
-    },
+  gomb.disabled = true;
+  const adagSzam = Math.max(1, parseInt(k.adag, 10) || 4);
+  const uj = {
+    id: 's' + Date.now().toString(36),
+    sajat: true,
+    nev: k.nev.trim(),
+    ido: k.ido.trim(),
+    adag: `${adagSzam} adag`,
+    adagSzam,
+    forras: null,
+    lepesek: sorokra(k.lepesek),
+    // Same shape as the built-in recipes (id + amount + grams), so the nutrition table works for these too.
+    hozzavalok: k.sorok.map((s) => (s.id
+      ? { id: s.id, menny: mennyisegSzoveg(s), g: grammra(s.id, s.mennyiseg, s.egyseg), ...(s.t ? { t: s.t } : {}) }
+      : { szoveg: s.szoveg, id: illeszt(s.szoveg) || null })),
+    kep: k.kepBlob,
+    hozzaadva: new Date().toISOString(),
   };
-  location.hash = '#/uj';
+  await Tar.ment(uj);
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
+  if (uj.kep) kepUrlek[uj.id] = k.kepUrl;
+  sajatReceptek.push(uj);
+  kezi = uresKezi();
+  localStorage.removeItem(PISZKOZAT_KULCS);
+  keziMentve = true;
+  location.replace('#/recept/' + encodeURIComponent(uj.id));
 }
 
 function receptKep(r, osztaly) {
@@ -640,6 +842,7 @@ function taperTabla(r) {
     r.megj,
     t.benne.length ? `Benne van: ${t.benne.join(', ')}.` : '',
     t.kimaradt.length ? `Nincs benne: ${t.kimaradt.join(', ')} (nincs bepipálva, hogy itthon van).` : '',
+    t.nemSzamolt.length ? `Mennyiség nélkül, ezért nincs benne: ${t.nemSzamolt.join(', ')}.` : '',
   ].filter(Boolean).map(esc).join(' ');
   return `
     <div class="tapertek">
@@ -770,7 +973,7 @@ const OPCIONALIS = /opcion|elhagyhat|ha van|ízlés szerint|tetszés szerint|dí
 
 // Built-in recipes: "ha van" (kolbász, if you have it). Imported lines: "ízlés szerint", unless the line already says so.
 function opcionalisCimke(h) {
-  if (h.szoveg == null) return '<span class="megj">ha van</span>';
+  if (h.szoveg == null) return h.menny === 'ízlés szerint' ? '' : '<span class="megj">ha van</span>';
   return /ízlés szerint/i.test(h.szoveg) ? '' : '<span class="megj">ízlés szerint</span>';
 }
 
@@ -979,8 +1182,9 @@ function rajzol() {
   else if (ut === '#/receptek') receptLista();
   else if (ut.startsWith('#/recept/')) receptOldal(decodeURIComponent(ut.slice(9)));
   else if (ut.startsWith('#/uj')) ujRecept();
-  else if (ut === '#/kezi' && keziMentve) { keziMentve = false; location.replace('#/'); return; }
-  else if (ut === '#/kezi') keziOldal();
+  else if (ut.startsWith('#/kezi') && keziMentve) { keziMentve = false; location.replace('#/'); return; }
+  else if (ut === '#/kezi/valaszt') { keziValasztoOldal(); keziPiszkozatMent(); }
+  else if (ut === '#/kezi') { keziOldal(); keziPiszkozatMent(); }
   else if (ut === '#/tapanyag') { hForm = null; tapanyagOldal(); }
   else if (ut === '#/hozzavalo/uj') hozzavaloOldal(null);
   else if (ut.startsWith('#/hozzavalo/')) hozzavaloOldal(decodeURIComponent(ut.slice(12)));
@@ -1021,8 +1225,42 @@ app.addEventListener('click', async (e) => {
       mentsItthon();
       itthonOldal();
     }
-  } else if ('keziTovabb' in gomb.dataset) {
-    keziTovabb();
+  } else if ('keziUj' in gomb.dataset) {
+    Object.assign(kezi, { valasztott: null, szerkesztIndex: null, egyebSzoveg: '', hiba: '' });
+    location.hash = '#/kezi/valaszt';
+  } else if (gomb.dataset.keziValaszt) {
+    keziValaszt(gomb.dataset.keziValaszt);
+    rajzol();
+    window.scrollTo(0, 0);
+  } else if (gomb.dataset.keziSzerk) {
+    const i = +gomb.dataset.keziSzerk;
+    keziValaszt(kezi.sorok[i].id, i);
+    location.hash = '#/kezi/valaszt';
+  } else if (gomb.dataset.keziTorol) {
+    kezi.sorok.splice(+gomb.dataset.keziTorol, 1);
+    rajzolMarad();
+  } else if (gomb.dataset.keziEgyseg) {
+    kezi.egyseg = gomb.dataset.keziEgyseg;
+    rajzolMarad();
+  } else if (gomb.dataset.keziResz) {
+    kezi.resz = gomb.dataset.keziResz;
+    rajzolMarad();
+  } else if ('keziMasik' in gomb.dataset) {
+    kezi.valasztott = null;
+    kezi.szerkesztIndex = null;
+    rajzol();
+    window.scrollTo(0, 0);
+  } else if ('keziHozzaad' in gomb.dataset) {
+    keziHozzaad();
+  } else if ('keziEgyeb' in gomb.dataset) {
+    const szoveg = kezi.egyebSzoveg.trim();
+    if (szoveg) {
+      kezi.sorok.push({ szoveg });
+      kezi.egyebSzoveg = '';
+      if (history.length > 1) history.back(); else location.replace('#/kezi');
+    }
+  } else if ('keziMentes' in gomb.dataset) {
+    await keziMentes(gomb);
   } else if ('betolt' in gomb.dataset) {
     betolt(document.getElementById('link').value.trim());
   } else if ('mentes' in gomb.dataset) {
@@ -1090,7 +1328,8 @@ app.addEventListener('change', (e) => {
 });
 
 app.addEventListener('input', (e) => {
-  if (e.target.dataset.kezi) kezi[e.target.dataset.kezi] = e.target.value;
+  if (e.target.dataset.kezi) { kezi[e.target.dataset.kezi] = e.target.value; keziPiszkozatMent(); }
+  else if ('keziKeres' in e.target.dataset) keziKeres(e.target.value);
   else if ('hnev' in e.target.dataset && hForm) hForm.nev = e.target.value;
   else if (e.target.dataset.hertek && hForm) { hForm.ertek[+e.target.dataset.hertek] = e.target.value; hForm.forras = hForm.forras || 'kezi'; }
 });

@@ -42,6 +42,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 
 html { -webkit-text-size-adjust: 100%; }
 
@@ -152,6 +153,36 @@ button:active, .fajl-gomb:active { transform: scale(.98); }
 /* Hand-written recipe form */
 .ket-oszlop { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .szoveg-mezo { min-height: 180px; resize: vertical; line-height: 1.5; }
+.kezi-lista { list-style: none; padding: 0; margin: 0 0 8px; display: grid; gap: 8px; }
+.kezi-sor { display: flex; gap: 8px; }
+.kezi-sor-gomb {
+  flex: 1; min-width: 0;
+  display: flex; align-items: center; gap: 12px;
+  min-height: 60px;
+  padding: 8px 14px;
+  border: 2px solid var(--szegely);
+  border-radius: var(--r);
+  background: var(--felulet);
+  text-align: left;
+}
+.kezi-sor-gomb:disabled { opacity: 1; cursor: default; }
+.kezi-sor-gomb .ikon { font-size: 26px; flex: none; }
+.kezi-sor-nev { flex: 1; min-width: 0; font-weight: 700; line-height: 1.2; }
+.kezi-sor-menny { flex: none; color: var(--halvany); font-size: 18px; text-align: right; }
+.kezi-sor-torol {
+  flex: none;
+  width: 60px;
+  border: 2px solid var(--szegely);
+  border-radius: var(--r);
+  background: var(--felulet);
+  color: var(--nincs);
+  font-size: 22px;
+  display: grid; place-items: center;
+}
+/* Two-class selectors so these win over .mezo / .szuro-sor, which are defined further down. */
+.mezo.nagy-mezo { font-size: 30px; font-weight: 800; min-height: 72px; }
+.szuro-sor.egyseg-sor { grid-template-columns: repeat(3, 1fr); }
+.szuro-sor.egyseg-sor .szuro { padding: 0 6px; font-size: 17px; }
 
 /* Ingredient tiles */
 .racs { display: grid; grid-template-columns: 1fr; gap: 8px; }
