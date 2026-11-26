@@ -71,6 +71,78 @@ function tapertek(recept) {
 
 const kerekKcal = (v) => Math.round(v / 10) * 10;
 const kerekG = (v) => Math.round(v);
+const szam = (v) => v.toLocaleString('hu-HU', { maximumFractionDigits: 1 });
+
+/* ---------- Ingredient nutrition page ---------- */
+
+let tabla = { szerint: 'feherje', irany: 'le', kat: 'mind', csakItthon: false };
+const MERTEKEK = [
+  { kulcs: 'feherje', nev: 'Fehérje', egyseg: 'g' },
+  { kulcs: 'kcal', nev: 'Kalória', egyseg: 'kcal' },
+  { kulcs: 'szenhidrat', nev: 'Szénhidrát', egyseg: 'g' },
+  { kulcs: 'zsir', nev: 'Zsír', egyseg: 'g' },
+];
+
+// One row per entry in the nutrition table; chicken cuts get their own names, salt/pepper/water are left out.
+function tapanyagSorok() {
+  const valtozat = adat.tapanyagValtozatok || {};
+  return Object.entries(adat.tapanyagok)
+    .filter(([kulcs]) => kulcs !== '_')
+    .map(([kulcs, [kcal, feherje, zsir, szenhidrat]]) => {
+      const h = valtozat[kulcs] || hozzavaloById[kulcs];
+      if (!h || (h.alap && !valtozat[kulcs])) return null;
+      const gomb = hozzavaloById[kulcs] ? kulcs : (kulcs.startsWith('csirke') ? 'csirke' : null);
+      return { kulcs, nev: h.nev, ikon: h.ikon, kat: h.kat, gomb, kcal, feherje, zsir, szenhidrat };
+    })
+    .filter(Boolean);
+}
+
+function tapanyagOldal() {
+  const m = MERTEKEK.find((x) => x.kulcs === tabla.szerint);
+  let sorok = tapanyagSorok();
+  if (tabla.kat !== 'mind') sorok = sorok.filter((s) => s.kat === tabla.kat);
+  if (tabla.csakItthon) sorok = sorok.filter((s) => s.gomb === 'olaj' || itthon.has(s.gomb));
+  sorok.sort((a, b) => (tabla.irany === 'le' ? b[m.kulcs] - a[m.kulcs] : a[m.kulcs] - b[m.kulcs]) || a.nev.localeCompare(b.nev, 'hu'));
+  const max = Math.max(...tapanyagSorok().map((s) => s[m.kulcs]), 1);
+
+  const gomb = (attr, ertek, felirat, aktiv) =>
+    `<button class="szuro" ${attr}="${ertek}" aria-pressed="${aktiv}">${esc(felirat)}</button>`;
+
+  const lista = sorok.map((s) => {
+    const tobbi = MERTEKEK.filter((x) => x.kulcs !== m.kulcs)
+      .map((x) => `${szam(s[x.kulcs])} ${x.egyseg} ${x.nev.toLowerCase()}`).join(' · ');
+    return `
+      <li class="tap-elem">
+        <span class="ikon" aria-hidden="true">${s.ikon}</span>
+        <span class="tap-kozep">
+          <span class="nev">${esc(s.nev)}</span>
+          <span class="tap-csik" aria-hidden="true"><span style="width:${Math.max(2, (s[m.kulcs] / max) * 100)}%"></span></span>
+          <span class="tap-tobbi">${tobbi}</span>
+        </span>
+        <span class="tap-fo">${szam(s[m.kulcs])} ${m.egyseg}<small>${m.nev.toLowerCase()}</small></span>
+      </li>`;
+  }).join('');
+
+  app.innerHTML = `
+    ${vissza()}
+    <h1>Tápérték</h1>
+    <p class="alcim">100 gramm nyers hozzávalóban.</p>
+    <p class="szuro-cim">Mi szerint?</p>
+    <div class="szuro-sor">${MERTEKEK.map((x) => gomb('data-rendez', x.kulcs, x.nev, x.kulcs === tabla.szerint)).join('')}</div>
+    <div class="szuro-sor">
+      ${gomb('data-irany', 'le', 'Legtöbb elöl', tabla.irany === 'le')}
+      ${gomb('data-irany', 'fel', 'Legkevesebb elöl', tabla.irany === 'fel')}
+    </div>
+    <p class="szuro-cim">Melyik csoport?</p>
+    <div class="szuro-sor">
+      ${gomb('data-kat', 'mind', 'Mind', tabla.kat === 'mind')}
+      ${adat.kategoriak.map((k) => gomb('data-kat', k.id, k.nev, tabla.kat === k.id)).join('')}
+    </div>
+    <div class="szuro-sor">${gomb('data-csak-itthon', '1', 'Csak ami itthon van', tabla.csakItthon)}</div>
+    ${sorok.length
+      ? `<ul class="tap-lista">${lista}</ul>`
+      : '<p class="uzenet">Ebben a csoportban nincs bepipálva semmi, ami itthon van.</p>'}`;
+}
 
 // An imported recipe with no recognised ingredient can't be judged, so it never counts as "can cook".
 function ismeretlen(recept) {
@@ -145,6 +217,7 @@ function kezdolap() {
     <h1>Mi van itthon?</h1>
     <p class="alcim">Koppints arra, ami van. Só, bors, olaj mindig van.</p>
     ${csoportok}
+    <button class="halk-gomb" data-ugras="#/tapanyag">Hozzávalók tápértéke</button>
     ${itthon.size ? '<button class="halk-gomb" data-torles>Minden pipa törlése</button>' : ''}
     <div class="also-sav">
       <button class="nagy-gomb" data-ugras="#/receptek">
@@ -520,6 +593,7 @@ function rajzol() {
   if (ut === '#/receptek') receptLista();
   else if (ut.startsWith('#/recept/')) receptOldal(decodeURIComponent(ut.slice(9)));
   else if (ut.startsWith('#/uj')) ujRecept();
+  else if (ut === '#/tapanyag') tapanyagOldal();
   else kezdolap();
 
   const ujUtvonal = location.hash || '#/';
@@ -572,6 +646,14 @@ app.addEventListener('click', async (e) => {
     }
   } else if ('export' in gomb.dataset) {
     exportal();
+  } else if (gomb.dataset.rendez || gomb.dataset.irany || gomb.dataset.kat || gomb.dataset.csakItthon) {
+    if (gomb.dataset.rendez) tabla.szerint = gomb.dataset.rendez;
+    if (gomb.dataset.irany) tabla.irany = gomb.dataset.irany;
+    if (gomb.dataset.kat) tabla.kat = gomb.dataset.kat;
+    if (gomb.dataset.csakItthon) tabla.csakItthon = !tabla.csakItthon;
+    const y = window.scrollY;
+    tapanyagOldal();
+    window.scrollTo(0, y);
   }
 });
 

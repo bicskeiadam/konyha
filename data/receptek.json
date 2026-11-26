@@ -55,6 +55,13 @@
     { "id": "viz", "nev": "Víz", "alap": true, "kulcsok": [ "=víz", "=vizet", "vízzel", "szódavíz", "ásványvíz", "=voda", "=vode", "=vodu", "=vodom", "mineralna voda", "mineralne vode" ] }
   ],
   "tiltott": ["tejszín", "kókusztej", "kókuszt", "sütőtök", "babérlev", "sirće", "sirce", "slatka pavlak", "slatke pavlak", "slatko vrhnj", "slatkog vrhnj", "leveles tészt", "lisnato test", "lisnatog test", "kukoricaliszt", "praziluk", "póréhagym", "kakaópor", "vaníliás cukor", "zöldpaprika nélkül", "paradajz paprik", "kukoricakeményít", "gustin"],
+  "tapanyagValtozatok": {
+    "csirke": { "nev": "Csirke (egész, bőrrel)", "ikon": "🍗", "kat": "hus" },
+    "csirkemell": { "nev": "Csirkemell", "ikon": "🍗", "kat": "hus" },
+    "csirkecomb": { "nev": "Csirkecomb (bőrrel)", "ikon": "🍗", "kat": "hus" },
+    "sertes": { "nev": "Sertéslapocka", "ikon": "🥩", "kat": "hus" },
+    "olaj": { "nev": "Olaj", "ikon": "🫗", "kat": "kamra" }
+  },
   "tapanyagok": {
     "_": "per 100 g, nyersen: [kcal, fehérje g, zsír g, szénhidrát g]",
     "csirke": [215, 18.6, 15.1, 0],
