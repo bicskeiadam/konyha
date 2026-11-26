@@ -21,6 +21,12 @@ const gorgetesek = {};
 // State of the "new recipe" screen: ures → tolt → elonezet | hiba
 let importalas = { allapot: 'ures', link: '', recept: null, hiba: '' };
 
+// The hand-written recipe form keeps its text while she moves between screens.
+const uresKezi = () => ({ nev: '', ido: '', adag: '4', hozzavalok: '', lepesek: '', kepBlob: null, kepUrl: null, hiba: '' });
+let kezi = uresKezi();
+// After saving, the phone's back button would land on the emptied form; send it to the menu instead.
+let keziMentve = false;
+
 function mentsItthon() {
   localStorage.setItem(TAROLO_KULCS, JSON.stringify([...itthon]));
 }
@@ -148,40 +154,66 @@ function rendezettReceptek() {
 
 /* ---------- Storage on the phone (IndexedDB) for imported recipes ---------- */
 
+// "sajat": imported and hand-written recipes (photo inside the record).
+// "kepek": photos she took of the built-in recipes, keyed by recipe id.
 const Tar = {
   db: null,
   nyit() {
     if (this.db) return Promise.resolve(this.db);
     return new Promise((ok, hiba) => {
-      const k = indexedDB.open('konyha', 1);
-      k.onupgradeneeded = () => k.result.createObjectStore('sajat', { keyPath: 'id' });
+      const k = indexedDB.open('konyha', 2);
+      k.onupgradeneeded = () => {
+        const db = k.result;
+        if (!db.objectStoreNames.contains('sajat')) db.createObjectStore('sajat', { keyPath: 'id' });
+        if (!db.objectStoreNames.contains('kepek')) db.createObjectStore('kepek', { keyPath: 'id' });
+      };
       k.onsuccess = () => { this.db = k.result; ok(this.db); };
       k.onerror = () => hiba(k.error);
     });
   },
-  async muvelet(mod, fn) {
+  async muvelet(tar, mod, fn) {
     const db = await this.nyit();
     return new Promise((ok, hiba) => {
-      const tx = db.transaction('sajat', mod);
-      const k = fn(tx.objectStore('sajat'));
+      const tx = db.transaction(tar, mod);
+      const k = fn(tx.objectStore(tar));
       tx.oncomplete = () => ok(k && k.result);
       tx.onerror = () => hiba(tx.error);
     });
   },
-  osszes() { return this.muvelet('readonly', (s) => s.getAll()); },
-  ment(r) { return this.muvelet('readwrite', (s) => s.put(r)); },
-  torol(id) { return this.muvelet('readwrite', (s) => s.delete(id)); },
+  osszes() { return this.muvelet('sajat', 'readonly', (s) => s.getAll()); },
+  ment(r) { return this.muvelet('sajat', 'readwrite', (s) => s.put(r)); },
+  torol(id) { return this.muvelet('sajat', 'readwrite', (s) => s.delete(id)); },
+  kepek() { return this.muvelet('kepek', 'readonly', (s) => s.getAll()); },
+  kepMent(id, kep) { return this.muvelet('kepek', 'readwrite', (s) => s.put({ id, kep })); },
 };
 
+function kepBeallit(id, blob) {
+  if (kepUrlek[id]) URL.revokeObjectURL(kepUrlek[id]);
+  if (blob) kepUrlek[id] = URL.createObjectURL(blob); else delete kepUrlek[id];
+}
+
 async function sajatBetolt() {
+  let kepek = [];
   try {
     sajatReceptek = await Tar.osszes();
+    kepek = await Tar.kepek();
   } catch (_) {
     sajatReceptek = [];
   }
-  for (const r of sajatReceptek) {
-    if (r.kep && !kepUrlek[r.id]) kepUrlek[r.id] = URL.createObjectURL(r.kep);
+  for (const r of sajatReceptek) if (r.kep && !kepUrlek[r.id]) kepBeallit(r.id, r.kep);
+  for (const k of kepek) if (k.kep && !kepUrlek[k.id]) kepBeallit(k.id, k.kep);
+}
+
+// Photo of any recipe: own recipes keep it in their record, built-in ones in the "kepek" store.
+async function receptKepMent(r, blob) {
+  if (r.sajat) {
+    r.kep = blob;
+    await Tar.ment(r);
+  } else {
+    await Tar.kepMent(r.id, blob);
   }
+  kepBeallit(r.id, blob);
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
 }
 
 /* ---------- Screens ---------- */
@@ -195,8 +227,56 @@ function vissza() {
   return `<div class="fejlec"><button class="vissza" data-vissza>${ikon('caret-left')} Vissza</button></div>`;
 }
 
-function kezdolap() {
-  const tudod = rendezettReceptek().filter((x) => !x.ismeretlen && x.hiany.length === 0).length;
+function tudodSzam() {
+  return rendezettReceptek().filter((x) => !x.ismeretlen && x.hiany.length === 0).length;
+}
+
+function menuGomb(cel, ikonNev, cim, leiras, fo = false) {
+  return `
+    <button class="menu-gomb${fo ? ' fo' : ''}" data-ugras="${cel}">
+      <span class="menu-ikon">${ikon(ikonNev)}</span>
+      <span class="menu-szoveg">
+        <span class="menu-cim">${esc(cim)}</span>
+        <span class="menu-leiras">${esc(leiras)}</span>
+      </span>
+      <span class="menu-nyil">${ikon('caret-right')}</span>
+    </button>`;
+}
+
+function fomenu() {
+  const tudod = tudodSzam();
+  app.innerHTML = `
+    <div class="menu">
+      <div class="menu-fej">
+        <span class="menu-jel">${ikon('fork-knife')}</span>
+        <h1>Konyha</h1>
+        <p class="alcim">Mit csinálunk ma?</p>
+      </div>
+      <nav class="menu-gombok" aria-label="Főmenü">
+        ${menuGomb('#/itthon', 'cooking-pot', 'Mit főzzek?', tudod ? `${tudod} receptet meg tudsz főzni` : 'Pipáld be, mi van itthon', true)}
+        ${menuGomb('#/tapanyag', 'chart-bar', 'Tápértékek', 'Fehérje, kalória, zsír')}
+        ${menuGomb('#/kezi', 'note-pencil', 'Új recept', 'Saját recept, fényképpel')}
+      </nav>
+    </div>`;
+}
+
+// Camera + gallery buttons. "cel" says where the photo goes: kezi, import, or recept:<id>.
+function kepValaszto(cel, kepUrl, elonezettel) {
+  const kep = !elonezettel ? '' : kepUrl
+    ? `<img class="nagykep" src="${kepUrl}" alt="">`
+    : `<div class="kep-ures">${ikon('image')}<span>Még nincs fénykép</span></div>`;
+  return `
+    <div class="kep-valaszto">
+      ${kep}
+      <div class="kep-gombok">
+        <label class="halk-gomb fajl-gomb">${ikon('camera')} Fotózás<input type="file" accept="image/*" capture="environment" data-kep="${esc(cel)}" hidden></label>
+        <label class="halk-gomb fajl-gomb">${ikon('image')} Galériából<input type="file" accept="image/*" data-kep="${esc(cel)}" hidden></label>
+      </div>
+    </div>`;
+}
+
+function itthonOldal() {
+  const tudod = tudodSzam();
   const csoportok = adat.kategoriak.map((kat) => {
     const csempek = adat.hozzavalok
       .filter((h) => h.kat === kat.id && !h.alap)
@@ -210,24 +290,88 @@ function kezdolap() {
   }).join('');
 
   app.innerHTML = `
+    ${vissza()}
     <h1>Mi van itthon?</h1>
     <p class="alcim">Koppints arra, ami van. Só, bors, olaj mindig van.</p>
     ${csoportok}
-    <button class="halk-gomb" data-ugras="#/tapanyag">${ikon('chart-bar')} Hozzávalók tápértéke</button>
     ${itthon.size ? `<button class="halk-gomb veszely" data-torles>${ikon('x')} Minden pipa törlése</button>` : ''}
     <div class="also-sav">
       <button class="nagy-gomb" data-ugras="#/receptek">
-        ${ikon('cooking-pot')}
+        ${ikon('book-open-text')}
         <span class="gomb-szoveg">
-          Mit főzzek?
-          <small>${tudod ? `${tudod} receptet meg tudsz főzni` : 'Nézd meg a recepteket'}</small>
+          Receptek mutatása
+          <small>${tudod ? `${tudod} receptet meg tudsz főzni` : 'Nézd meg, mihez mi kell még'}</small>
         </span>
       </button>
     </div>`;
 }
 
+function keziOldal() {
+  const k = kezi;
+  app.innerHTML = `
+    ${vissza()}
+    <h1>Új recept</h1>
+    ${k.hiba ? `<p class="uzenet hiba-uzenet">${esc(k.hiba)}</p>` : ''}
+    <h2>Fénykép</h2>
+    ${kepValaszto('kezi', k.kepUrl, true)}
+    <label class="cimke" for="k-nev">A recept neve</label>
+    <input id="k-nev" class="mezo" data-kezi="nev" value="${esc(k.nev)}" autocomplete="off">
+    <div class="ket-oszlop">
+      <div>
+        <label class="cimke" for="k-ido">Mennyi idő?</label>
+        <input id="k-ido" class="mezo" data-kezi="ido" value="${esc(k.ido)}" placeholder="pl. 45 perc" autocomplete="off">
+      </div>
+      <div>
+        <label class="cimke" for="k-adag">Hány adag?</label>
+        <input id="k-adag" class="mezo" data-kezi="adag" value="${esc(k.adag)}" type="number" inputmode="numeric" min="1" max="30">
+      </div>
+    </div>
+    <label class="cimke" for="k-hozz">Hozzávalók</label>
+    <p class="tipp">Soronként egyet írj, például: 2 fej vöröshagyma</p>
+    <textarea id="k-hozz" class="mezo szoveg-mezo" data-kezi="hozzavalok" rows="6">${esc(k.hozzavalok)}</textarea>
+    <label class="cimke" for="k-lep">Elkészítés</label>
+    <p class="tipp">Soronként egy lépést írj.</p>
+    <textarea id="k-lep" class="mezo szoveg-mezo" data-kezi="lepesek" rows="6">${esc(k.lepesek)}</textarea>
+    <button class="halk-gomb" data-ugras="#/uj">${ikon('link-simple')} Inkább linkből töltöm be</button>
+    <div class="also-sav">
+      <button class="nagy-gomb" data-kezi-tovabb>${ikon('arrow-right')}<span class="gomb-szoveg">Tovább</span></button>
+    </div>`;
+}
+
+const sorokra = (s) => String(s).split(/\n+/).map((x) => x.trim()).filter(Boolean);
+
+// Hand-written recipes go through the same check screen as imports, so ingredients get matched to buttons.
+function keziTovabb() {
+  const hozzavalok = sorokra(kezi.hozzavalok);
+  if (!kezi.nev.trim() || !hozzavalok.length) {
+    kezi.hiba = !kezi.nev.trim() ? 'Írd be a recept nevét.' : 'Írj be legalább egy hozzávalót.';
+    keziOldal();
+    window.scrollTo(0, 0);
+    return;
+  }
+  kezi.hiba = '';
+  const adagSzam = Math.max(1, parseInt(kezi.adag, 10) || 4);
+  importalas = {
+    allapot: 'elonezet',
+    link: '',
+    hiba: '',
+    recept: {
+      kezi: true,
+      nev: kezi.nev.trim(),
+      ido: kezi.ido.trim(),
+      adag: `${adagSzam} adag`,
+      forras: null,
+      lepesek: sorokra(kezi.lepesek),
+      hozzavalok: hozzavalok.map((szoveg) => ({ szoveg, id: illeszt(szoveg), opcionalis: OPCIONALIS.test(szoveg) || undefined })),
+      kepBlob: kezi.kepBlob,
+      kepUrl: kezi.kepUrl,
+    },
+  };
+  location.hash = '#/uj';
+}
+
 function receptKep(r, osztaly) {
-  if (r.sajat && kepUrlek[r.id]) return `<img class="${osztaly}" src="${kepUrlek[r.id]}" alt="">`;
+  if (kepUrlek[r.id]) return `<img class="${osztaly}" src="${kepUrlek[r.id]}" alt="">`;
   return r.ikon ? `<span class="ikon" aria-hidden="true">${r.ikon}</span>` : `<span class="ikon-hely">${ikon('fork-knife')}</span>`;
 }
 
@@ -272,7 +416,7 @@ function receptLista() {
       : `<button class="halk-gomb" data-tobbi>A többi recept (${tobbi.length})</button>`;
   }
 
-  html += `<button class="halk-gomb" data-ugras="#/uj">${ikon('plus')} Új recept hozzáadása</button>`;
+  html += `<button class="halk-gomb" data-ugras="#/kezi">${ikon('plus')} Új recept hozzáadása</button>`;
   app.innerHTML = html;
 }
 
@@ -330,13 +474,17 @@ function receptOldal(id) {
     </button></li>`).join('');
 
   const info = [r.ido, r.adag].filter(Boolean).map(esc).join(' · ');
-  const fej = r.sajat && kepUrlek[r.id]
+  const fej = kepUrlek[r.id]
     ? `<img class="nagykep" src="${kepUrlek[r.id]}" alt=""><h1>${esc(r.nev)}</h1>${info ? `<p class="meta">${info}</p>` : ''}`
     : `<div class="recept-fej">${receptKep(r)}<div><h1>${esc(r.nev)}</h1>${info ? `<p class="meta">${info}</p>` : ''}</div></div>`;
 
-  const lab = r.sajat ? `
-    <p class="forras">${ikon('link')}<span>${r.forditva ? 'Magyarra fordítva. Eredeti recept' : 'Forrás'}: <a href="${esc(r.forras)}" target="_blank" rel="noopener">${esc(new URL(r.forras).hostname.replace(/^www\./, ''))}</a></span></p>
-    <button class="halk-gomb veszely" data-recept-torles="${esc(r.id)}">${ikon('trash')} Recept törlése</button>` : '';
+  const forras = r.sajat && r.forras ? `
+    <p class="forras">${ikon('link')}<span>${r.forditva ? 'Magyarra fordítva. Eredeti recept' : 'Forrás'}: <a href="${esc(r.forras)}" target="_blank" rel="noopener">${esc(new URL(r.forras).hostname.replace(/^www\./, ''))}</a></span></p>` : '';
+  const lab = `
+    <h2>${kepUrlek[r.id] ? 'Fénykép cseréje' : 'Fénykép hozzáadása'}</h2>
+    ${kepValaszto(`recept:${r.id}`, null, false)}
+    ${forras}
+    ${r.sajat ? `<button class="halk-gomb veszely" data-recept-torles="${esc(r.id)}">${ikon('trash')} Recept törlése</button>` : ''}`;
 
   app.innerHTML = `
     ${vissza()}
@@ -394,7 +542,7 @@ function ujRecept() {
     const lepesek = recept.lepesek.map((l, i) => `
       <li><div class="lepes-elonezet"><span class="szam">${i + 1}</span><span>${esc(l)}</span></div></li>`).join('');
     html += `
-      ${recept.kepUrl ? `<img class="nagykep" src="${recept.kepUrl}" alt="">` : ''}
+      ${kepValaszto('import', recept.kepUrl, true)}
       <label class="cimke" for="recept-nev">A recept neve</label>
       <input id="recept-nev" class="mezo" value="${esc(recept.nev)}">
       ${info ? `<p class="meta">${info}</p>` : ''}
@@ -523,8 +671,41 @@ async function mentes() {
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
   if (uj.kep) kepUrlek[uj.id] = r.kepUrl;
   sajatReceptek.push(uj);
+  if (r.kezi) { kezi = uresKezi(); keziMentve = true; }
   importalas = { allapot: 'ures', link: '', recept: null, hiba: '' };
   location.replace('#/recept/' + encodeURIComponent(uj.id));
+}
+
+// A photo from the camera or gallery, shrunk like imported photos, then put where "cel" says.
+async function kepFeldolgoz(cel, fajl) {
+  const ideiglenes = URL.createObjectURL(fajl);
+  let blob;
+  try {
+    blob = await kicsinyit(ideiglenes);
+  } catch (_) {
+    alert('Ezt a képet nem sikerült megnyitni.');
+    return;
+  } finally {
+    URL.revokeObjectURL(ideiglenes);
+  }
+  const y = window.scrollY;
+  if (cel === 'kezi') {
+    if (kezi.kepUrl) URL.revokeObjectURL(kezi.kepUrl);
+    kezi.kepBlob = blob;
+    kezi.kepUrl = URL.createObjectURL(blob);
+  } else if (cel === 'import' && importalas.recept) {
+    importalas.recept.kepBlob = blob;
+    importalas.recept.kepUrl = URL.createObjectURL(blob);
+  } else if (cel.startsWith('recept:')) {
+    const r = osszesRecept().find((x) => x.id === cel.slice(7));
+    if (!r) return;
+    await receptKepMent(r, blob);
+    rajzol();
+    window.scrollTo(0, 0);
+    return;
+  }
+  rajzol();
+  window.scrollTo(0, y);
 }
 
 /* ---------- Backup to a file ---------- */
@@ -535,7 +716,9 @@ function blobbolAdat(blob) {
 
 async function exportal() {
   const receptek = await Promise.all(sajatReceptek.map(async (r) => ({ ...r, kep: r.kep ? await blobbolAdat(r.kep) : null })));
-  const fajl = new Blob([JSON.stringify({ konyhaMentes: 1, receptek })], { type: 'application/json' });
+  // Photos she took of the built-in recipes.
+  const kepek = await Promise.all((await Tar.kepek()).map(async (k) => ({ id: k.id, kep: await blobbolAdat(k.kep) })));
+  const fajl = new Blob([JSON.stringify({ konyhaMentes: 1, receptek, kepek })], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(fajl);
   a.download = `konyha-mentes-${new Date().toISOString().slice(0, 10)}.json`;
@@ -552,8 +735,11 @@ async function importal(fajl) {
       const kep = r.kep ? await (await fetch(r.kep)).blob() : null;
       await Tar.ment({ ...r, sajat: true, kep });
     }
+    for (const k of mentett.kepek || []) {
+      if (k.id && k.kep) await Tar.kepMent(k.id, await (await fetch(k.kep)).blob());
+    }
     await sajatBetolt();
-    alert(`${mentett.receptek.length} recept visszatöltve.`);
+    alert(`${mentett.receptek.length} recept és ${(mentett.kepek || []).length} fénykép visszatöltve.`);
   } catch (_) {
     alert('Ez nem egy Konyha mentés fájl.');
   }
@@ -589,11 +775,14 @@ function rajzol() {
   const ut = location.hash || '#/';
   if (!ut.startsWith('#/recept/')) engedjAludni();
 
-  if (ut === '#/receptek') receptLista();
+  if (ut === '#/itthon') itthonOldal();
+  else if (ut === '#/receptek') receptLista();
   else if (ut.startsWith('#/recept/')) receptOldal(decodeURIComponent(ut.slice(9)));
   else if (ut.startsWith('#/uj')) ujRecept();
+  else if (ut === '#/kezi' && keziMentve) { keziMentve = false; location.replace('#/'); return; }
+  else if (ut === '#/kezi') keziOldal();
   else if (ut === '#/tapanyag') tapanyagOldal();
-  else kezdolap();
+  else fomenu();
 
   const ujUtvonal = location.hash || '#/';
   window.scrollTo(0, ujUtvonal === aktualisUtvonal ? window.scrollY : (gorgetesek[ujUtvonal] || 0));
@@ -611,7 +800,7 @@ app.addEventListener('click', async (e) => {
     if (itthon.has(id)) itthon.delete(id); else itthon.add(id);
     mentsItthon();
     const y = window.scrollY;
-    kezdolap();
+    itthonOldal();
     window.scrollTo(0, y);
   } else if (gomb.dataset.ugras) {
     location.hash = gomb.dataset.ugras;
@@ -628,8 +817,10 @@ app.addEventListener('click', async (e) => {
     if (confirm('Biztosan törlöd az összes pipát?')) {
       itthon.clear();
       mentsItthon();
-      kezdolap();
+      itthonOldal();
     }
+  } else if ('keziTovabb' in gomb.dataset) {
+    keziTovabb();
   } else if ('betolt' in gomb.dataset) {
     betolt(document.getElementById('link').value.trim());
   } else if ('mentes' in gomb.dataset) {
@@ -657,7 +848,13 @@ app.addEventListener('change', (e) => {
     importalas.recept.hozzavalok[+e.target.dataset.sor].id = e.target.value || null;
   } else if (e.target.matches('[data-import]') && e.target.files[0]) {
     importal(e.target.files[0]);
+  } else if (e.target.matches('[data-kep]') && e.target.files[0]) {
+    kepFeldolgoz(e.target.dataset.kep, e.target.files[0]);
   }
+});
+
+app.addEventListener('input', (e) => {
+  if (e.target.dataset.kezi) kezi[e.target.dataset.kezi] = e.target.value;
 });
 
 app.addEventListener('keydown', (e) => {
