@@ -44,6 +44,12 @@ export default {
     if (keres.method === 'OPTIONS') return new Response(null, { headers: fejlec });
 
     const ut = new URL(keres.url).pathname;
+    if (ut === '/vonalkod') {
+      const kod = new URL(keres.url).searchParams.get('kod') || '';
+      if (!/^\d{8,14}$/.test(kod)) return valasz({ hiba: 'rossz-kod' }, 400);
+      const termek = await vonalkodKeres(kod);
+      return termek ? valasz(termek) : valasz({ hiba: 'nincs' }, 404);
+    }
     if (ut === '/csalad-uj' && keres.method === 'POST') {
       const kod = await ujCsalad(env.DB);
       return kod ? valasz({ kod }) : valasz({ hiba: 'tul-sok' }, 429);
@@ -556,6 +562,35 @@ async function szinkron(db, csalad, test) {
     elemek: results.map((r) => ({ ...r, adat: r.adat ? JSON.parse(r.adat) : null, torolve: Boolean(r.torolve) })),
     tobb: valtozasok.length < (Array.isArray(test.valtozasok) ? test.valtozasok.length : 0),
   };
+}
+
+/* ---------- barcodes (Open Food Facts) ---------- */
+
+// Open Food Facts asks apps to name themselves in the User-Agent; a generic name, nothing personal.
+const OFF_UA = 'Konyha-recept-app/1.0';
+
+// Returns { nev, kcal, feherje, zsir, szenhidrat } per 100 g, or { nev } when the product is known
+// but has no nutrition values, or null when it is not in the database at all.
+async function vonalkodKeres(kod) {
+  let termek;
+  try {
+    const v = await fetch(`https://world.openfoodfacts.org/api/v2/product/${kod}.json?fields=product_name,product_name_sr,product_name_hu,brands,nutriments`, {
+      headers: { 'user-agent': OFF_UA }, signal: AbortSignal.timeout(8000), cf: { cacheTtl: 86400 },
+    });
+    if (!v.ok) return null;
+    const json = await v.json();
+    if (json.status !== 1 || !json.product) return null;
+    termek = json.product;
+  } catch {
+    return null;
+  }
+  const nevResz = termek.product_name_hu || termek.product_name_sr || termek.product_name || '';
+  const marka = String(termek.brands || '').split(',')[0].trim();
+  const nev = [nevResz.trim(), marka && !nevResz.toLowerCase().includes(marka.toLowerCase()) ? `(${marka})` : ''].filter(Boolean).join(' ').slice(0, 80);
+  const n = termek.nutriments || {};
+  const kcal = n['energy-kcal_100g'] ?? (n.energy_100g != null ? n.energy_100g / 4.184 : undefined);
+  const ertek = tapErtek({ kcal, feherje: n.proteins_100g, zsir: n.fat_100g, szenhidrat: n.carbohydrates_100g });
+  return ertek ? { nev, ...ertek } : (nev ? { nev } : null);
 }
 
 /* ---------- nutrition: package labels and estimates ---------- */

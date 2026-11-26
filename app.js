@@ -153,7 +153,10 @@ function tapanyagOldal() {
     <div class="szuro-sor">${MERTEKEK.map((x) =>
       `<button class="szuro" data-rendez="${x.kulcs}" aria-pressed="${x.kulcs === tapSzerint}">${esc(x.nev)}</button>`).join('')}</div>
     <p class="tipp">${m.tobbJobb ? 'Elöl az, amiben a legtöbb van.' : 'Elöl az, amiben a legkevesebb van.'} Koppints egy hozzávalóra, ha pontosítanád.</p>
-    <button class="halk-gomb balra" data-uj-hozzavalo>${ikon('plus')} Új hozzávaló</button>
+    <div class="kep-gombok">
+      <button class="halk-gomb" data-uj-hozzavalo>${ikon('plus')} Új hozzávaló</button>
+      <button class="halk-gomb" data-uj-vonalkod>${ikon('barcode')} Vonalkód</button>
+    </div>
     <div class="tap-tabla">
       <div class="tap-fejlec">
         <span class="tap-fejlec-nev">Hozzávaló</span>
@@ -167,7 +170,7 @@ function tapanyagOldal() {
 
 const SAJAT_HOZZAVALO_KULCS = 'konyha.sajatHozzavalok';
 const FELULIRAS_KULCS = 'konyha.felulirasok';
-// [{ id, nev, ikon, kat, ertek: [kcal, fehérje, zsír, szénhidrát], forras }]
+// [{ id, nev, ikon, kat, ertek: [kcal, fehérje, zsír, szénhidrát], forras, vonalkod? }]
 let sajatHozzavalok = JSON.parse(localStorage.getItem(SAJAT_HOZZAVALO_KULCS) || '[]');
 // { kulcs: { ertek: [...], forras } } - replaces the built-in estimate for that ingredient
 let felulirasok = JSON.parse(localStorage.getItem(FELULIRAS_KULCS) || '{}');
@@ -223,6 +226,7 @@ function hFormInit(kulcs) {
     kat: (sajat && sajat.kat) || (h && h.kat) || 'kamra',
     ertek: ertek ? ertek.map((v) => String(v).replace('.', ',')) : ['', '', '', ''],
     forras: (felulirasok[kulcs] || sajat || {}).forras || '',
+    vonalkod: (sajat && sajat.vonalkod) || '',
     allapot: '',
     uzenet: '',
   };
@@ -240,8 +244,16 @@ function hozzavaloOldal(kulcs) {
 
   const allapotSor = f.allapot === 'olvas' ? `<p class="uzenet">${ikon('camera')} Olvasom a címkét…</p>`
     : f.allapot === 'becsul' ? '<p class="uzenet">Keresem a szokásos értékeket…</p>'
+    : f.allapot === 'keres' ? `<p class="uzenet">${ikon('barcode')} Keresem a terméket…</p>`
+    : f.allapot === 'cimke-kell' ? `
+      <div class="uzenet cimke-kell">
+        <p><b>Ezt a terméket még nem ismerem.</b> Fotózd le a tápérték-táblázatot a csomagoláson, és megjegyzem ehhez a vonalkódhoz. Legközelebb már az egész család telefonja ismeri.</p>
+        <label class="nagy-gomb fajl-gomb">${ikon('camera')}<span class="gomb-szoveg">Címke fotó</span><input type="file" accept="image/*" capture="environment" data-cimke hidden></label>
+      </div>`
     : f.uzenet ? `<p class="uzenet${f.allapot === 'hiba' ? ' hiba-uzenet' : ''}">${esc(f.uzenet)}</p>` : '';
 
+  // Barcode results go to the top, where she is looking right after the scan.
+  const felul = f.allapot === 'keres' || f.allapot === 'cimke-kell';
   const mezok = HFORM_ERTEKEK.map(([nev, egyseg], i) => `
     <div>
       <label class="cimke" for="h-${i}">${nev} <span class="egyseg">(${egyseg})</span></label>
@@ -251,7 +263,10 @@ function hozzavaloOldal(kulcs) {
   app.innerHTML = `
     ${vissza()}
     <h1>${kulcs ? esc(f.nev) : 'Új hozzávaló'}</h1>
+    ${felul ? allapotSor : ''}
     ${kulcs ? '' : `
+      ${f.vonalkod ? '' : `<button class="nagy-gomb kozepen" data-vonalkod>${ikon('barcode')}<span class="gomb-szoveg">Vonalkód beolvasása</span></button>
+      <p class="tipp tipp-kozep">Vagy írd be kézzel:</p>`}
       <label class="cimke" for="h-nev">Neve</label>
       <input id="h-nev" class="mezo" data-hnev value="${esc(f.nev)}" autocomplete="off">
       <p class="szuro-cim">Melyik csoportba?</p>
@@ -267,8 +282,9 @@ function hozzavaloOldal(kulcs) {
       <label class="halk-gomb fajl-gomb">${ikon('image')} Galériából<input type="file" accept="image/*" data-cimke hidden></label>
     </div>
     <button class="halk-gomb balra" data-becsles>Nincs címkéje (hentes, piac)</button>
-    ${allapotSor}
+    ${felul ? '' : allapotSor}
     <div class="ertek-racs">${mezok}</div>
+    ${f.vonalkod ? `<p class="tipp">${ikon('barcode')} Vonalkód: ${esc(f.vonalkod)}</p>` : ''}
     ${eredeti ? `<p class="tipp eredeti">Eredeti becslés: ${szam(eredeti[0])} kcal, ${szam(eredeti[1])} g fehérje, ${szam(eredeti[2])} g zsír, ${szam(eredeti[3])} g szénhidrát.</p>` : ''}
     ${beepitett && felulirasok[kulcs] ? `<button class="halk-gomb balra" data-visszaallit>Eredeti visszaállítása</button>` : ''}
     ${sajat ? `<button class="halk-gomb balra veszely" data-htorol>${ikon('trash')} Hozzávaló törlése</button>` : ''}
@@ -324,7 +340,108 @@ function tapErtekBeir(valasz, forras, hibaSzoveg) {
     ? (forras === 'cimke'
       ? 'A számok nem egészen stimmelnek egymással. Nézd meg a címkén, és javítsd, ha kell.'
       : 'Ez a becslés bizonytalan, a számok nem stimmelnek egymással. Javítsd, ha tudod a pontos értéket.')
-    : forras === 'cimke' ? 'Kiolvastam a címkéről. Nézd át, és mentsd el.' : 'Ezek szokásos, becsült értékek. Nézd át, és mentsd el.';
+    : forras === 'cimke'
+      ? (hForm.vonalkod ? `Kiolvastam a címkéről. Nézd át, ${hForm.nev.trim() ? '' : 'írd be a nevét, '}és mentsd el: a vonalkódhoz kötöm.` : 'Kiolvastam a címkéről. Nézd át, és mentsd el.')
+      : 'Ezek szokásos, becsült értékek. Nézd át, és mentsd el.';
+}
+
+/* ---------- Barcode: scan, look up (family first, then Open Food Facts), or link a label photo ---------- */
+
+// EAN-13 / EAN-8 / UPC-A check digit, so a half-read code is never accepted.
+function vonalkodJo(kod) {
+  if (!/^\d{8,14}$/.test(kod)) return false;
+  const jegyek = [...kod].map(Number);
+  const ellenor = jegyek.pop();
+  const osszeg = jegyek.reverse().reduce((s, d, i) => s + d * (i % 2 === 0 ? 3 : 1), 0);
+  return (10 - (osszeg % 10)) % 10 === ellenor;
+}
+
+let szkenner = null;
+
+function szkennerBezar() {
+  if (!szkenner) return;
+  szkenner.fut = false;
+  szkenner.folyam?.getTracks().forEach((t) => t.stop());
+  szkenner.elem.remove();
+  szkenner = null;
+}
+
+async function vonalkodOlvas() {
+  if (!('BarcodeDetector' in window)) {
+    hFormInit(null);
+    hForm.allapot = 'hiba';
+    hForm.uzenet = 'Ez a telefon nem tud vonalkódot olvasni. Fotózd le inkább a tápérték-táblázatot.';
+    return rajzolMarad();
+  }
+  szkennerBezar();
+  const elem = document.createElement('div');
+  elem.className = 'szkenner';
+  elem.innerHTML = `
+    <video playsinline muted></video>
+    <div class="szkenner-keret" aria-hidden="true"></div>
+    <p class="szkenner-szoveg">Tartsd a vonalkódot a keretbe</p>
+    <button class="nagy-gomb szkenner-megse">${ikon('x')}<span class="gomb-szoveg">Mégse</span></button>`;
+  elem.querySelector('.szkenner-megse').addEventListener('click', szkennerBezar);
+  document.body.appendChild(elem);
+  const sajat = { elem, fut: true, folyam: null };
+  szkenner = sajat;
+  try {
+    sajat.folyam = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 } }, audio: false });
+    if (!sajat.fut) { sajat.folyam.getTracks().forEach((t) => t.stop()); return; }
+    const video = elem.querySelector('video');
+    video.srcObject = sajat.folyam;
+    await video.play();
+    const olvaso = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
+    while (sajat.fut) {
+      const talalat = (await olvaso.detect(video).catch(() => [])).map((b) => b.rawValue).find(vonalkodJo);
+      if (talalat && sajat.fut) {
+        navigator.vibrate?.(60);
+        szkennerBezar();
+        return vonalkodTalalt(talalat);
+      }
+      await new Promise((r) => setTimeout(r, 200));
+    }
+  } catch (_) {
+    if (!sajat.fut) return;
+    szkennerBezar();
+    hFormInit(null);
+    hForm.allapot = 'hiba';
+    hForm.uzenet = 'Nem sikerült elindítani a kamerát. Engedd meg a kamera használatát, vagy fotózd le a tápérték-táblázatot.';
+    rajzolMarad();
+  }
+}
+
+async function vonalkodTalalt(kod) {
+  const meglevo = sajatHozzavalok.find((s) => s.vonalkod === kod);
+  if (meglevo) {
+    hForm = null;
+    hFormInit(meglevo.id);
+    Object.assign(hForm, { allapot: 'kesz', uzenet: 'Ez a termék már megvan, itt vannak az értékei.' });
+    location.replace('#/hozzavalo/' + encodeURIComponent(meglevo.id));
+    return;
+  }
+  hFormInit(null);
+  hForm.vonalkod = kod;
+  if (!navigator.onLine) {
+    Object.assign(hForm, { allapot: 'cimke-kell', uzenet: '' });
+    return rajzolMarad();
+  }
+  Object.assign(hForm, { allapot: 'keres', uzenet: '' });
+  rajzolMarad();
+  try {
+    const v = await fetch(OLVASO_URL + 'vonalkod?kod=' + kod);
+    const termek = v.ok ? await v.json() : {};
+    if (termek.nev && !hForm.nev.trim()) hForm.nev = termek.nev;
+    if (termek.kcal != null) {
+      tapErtekBeir(termek, 'vonalkod', '');
+      if (!termek.ellenorizd) hForm.uzenet = `Megtaláltam${termek.nev ? `: ${termek.nev}` : ''}. Nézd át a számokat, válassz csoportot és képet, és mentsd el.`;
+    } else {
+      Object.assign(hForm, { allapot: 'cimke-kell', uzenet: '' });
+    }
+  } catch (_) {
+    Object.assign(hForm, { allapot: 'cimke-kell', uzenet: '' });
+  }
+  rajzolMarad();
 }
 
 function rajzolMarad() {
@@ -342,6 +459,7 @@ function hozzavaloMentes() {
 
   if (!f.kulcs) {
     const uj = { id: 'u' + Date.now().toString(36), nev: f.nev.trim(), ikon: f.ikon, kat: f.kat, ertek, forras: f.forras || 'kezi' };
+    if (f.vonalkod) uj.vonalkod = f.vonalkod;
     sajatHozzavalok.push(uj);
     jelol('hozzavalo', uj.id, uj.nev);
   } else if (sajatHozzavalok.some((s) => s.id === f.kulcs)) {
@@ -1660,7 +1778,7 @@ function rajzol() {
   aktualisUtvonal = ujUtvonal;
 }
 
-window.addEventListener('hashchange', rajzol);
+window.addEventListener('hashchange', () => { if (location.hash !== '#/hozzavalo/uj') szkennerBezar(); rajzol(); });
 
 app.addEventListener('click', async (e) => {
   const gomb = e.target.closest('button');
@@ -1787,6 +1905,12 @@ app.addEventListener('click', async (e) => {
   } else if ('ujHozzavalo' in gomb.dataset) {
     hForm = null;
     location.hash = '#/hozzavalo/uj';
+  } else if ('ujVonalkod' in gomb.dataset) {
+    hForm = null;
+    location.hash = '#/hozzavalo/uj';
+    vonalkodOlvas();
+  } else if ('vonalkod' in gomb.dataset) {
+    vonalkodOlvas();
   } else if (gomb.dataset.hkat) {
     hForm.kat = gomb.dataset.hkat;
     rajzolMarad();
