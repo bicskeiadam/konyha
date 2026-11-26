@@ -1,0 +1,197 @@
+:root {
+  --hatter: #fffaf3;
+  --kartya: #ffffff;
+  --szoveg: #1f1a17;
+  --halvany: #6b5f57;
+  --szegely: #e7ddd2;
+  --fo: #c2410c;
+  --fo-sotet: #9a3412;
+  --van: #15803d;
+  --van-hatter: #dcfce7;
+  --nincs: #b91c1c;
+  --nincs-hatter: #fee2e2;
+  --sarok: 18px;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--hatter);
+  color: var(--szoveg);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 21px;
+  line-height: 1.45;
+  -webkit-tap-highlight-color: transparent;
+}
+
+main {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 16px 16px calc(130px + env(safe-area-inset-bottom));
+}
+
+.betoltes { text-align: center; color: var(--halvany); margin-top: 40vh; }
+
+h1 { font-size: 32px; line-height: 1.15; margin: 12px 0 4px; }
+h2 { font-size: 24px; margin: 28px 0 12px; }
+.alcim { color: var(--halvany); margin: 0 0 8px; }
+
+button { font: inherit; color: inherit; cursor: pointer; }
+
+/* Ingredient tiles */
+.racs {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+@media (min-width: 560px) {
+  .racs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.csempe {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 64px;
+  padding: 8px 16px;
+  border: 3px solid var(--szegely);
+  border-radius: var(--sarok);
+  background: var(--kartya);
+  text-align: left;
+  font-size: 21px;
+  line-height: 1.2;
+}
+.csempe .ikon { font-size: 30px; flex: none; }
+.csempe .pipa {
+  margin-left: auto;
+  flex: none;
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  border: 3px solid var(--szegely);
+  display: grid; place-items: center;
+  font-size: 18px; font-weight: 800; color: #fff;
+}
+.csempe[aria-pressed="true"] {
+  border-color: var(--van);
+  background: var(--van-hatter);
+  font-weight: 700;
+}
+.csempe[aria-pressed="true"] .pipa { background: var(--van); border-color: var(--van); }
+
+/* Bottom action bar */
+.also-sav {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, var(--hatter) 70%, rgba(255, 250, 243, 0));
+}
+.nagy-gomb {
+  display: block;
+  width: 100%;
+  max-width: 608px;
+  margin: 0 auto;
+  min-height: 72px;
+  border: 0;
+  border-radius: var(--sarok);
+  background: var(--fo);
+  color: #fff;
+  font-size: 24px;
+  font-weight: 800;
+  box-shadow: 0 6px 18px rgba(154, 52, 18, .3);
+}
+.nagy-gomb:active { background: var(--fo-sotet); }
+.nagy-gomb small { display: block; font-size: 17px; font-weight: 500; opacity: .9; }
+
+.halk-gomb {
+  display: block;
+  margin: 32px auto 0;
+  padding: 14px 20px;
+  border: 2px solid var(--szegely);
+  border-radius: var(--sarok);
+  background: transparent;
+  color: var(--halvany);
+  font-size: 18px;
+}
+
+/* Top bar with back button */
+.fejlec { position: sticky; top: 0; z-index: 2; background: var(--hatter); margin: -16px -16px 0; padding: 10px 16px; }
+.vissza {
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 56px; padding: 0 20px 0 12px;
+  border: 2px solid var(--szegely); border-radius: 999px;
+  background: var(--kartya);
+  font-size: 20px; font-weight: 700;
+}
+.vissza span { font-size: 28px; line-height: 1; }
+
+/* Recipe cards in the list */
+.lista { display: grid; gap: 12px; }
+.recept-kartya {
+  display: flex; align-items: center; gap: 14px;
+  width: 100%;
+  min-height: 84px;
+  padding: 14px 16px;
+  border: 2px solid var(--szegely);
+  border-radius: var(--sarok);
+  background: var(--kartya);
+  text-align: left;
+}
+.recept-kartya .ikon { font-size: 38px; flex: none; }
+.recept-kartya .nev { display: block; font-size: 22px; font-weight: 800; line-height: 1.2; }
+.recept-kartya .info { display: block; font-size: 17px; color: var(--halvany); margin-top: 2px; }
+.recept-kartya .hiany { display: block; font-size: 18px; color: var(--nincs); margin-top: 4px; }
+.recept-kartya .nyil { margin-left: auto; font-size: 30px; color: var(--halvany); flex: none; }
+
+.uzenet {
+  padding: 18px;
+  border-radius: var(--sarok);
+  background: var(--kartya);
+  border: 2px dashed var(--szegely);
+  color: var(--halvany);
+}
+
+/* Recipe page */
+.recept-fej { display: flex; gap: 12px; align-items: center; margin-top: 8px; }
+.recept-fej .ikon { font-size: 52px; }
+.meta { color: var(--halvany); margin: 2px 0 0; font-size: 19px; }
+
+.hozzavalok { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.hozzavalok li {
+  display: flex; gap: 12px; align-items: baseline;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--kartya);
+  border: 2px solid var(--szegely);
+}
+.hozzavalok .jel { flex: none; width: 26px; font-weight: 800; text-align: center; }
+.hozzavalok .van .jel { color: var(--van); }
+.hozzavalok .nincs { background: var(--nincs-hatter); border-color: #fecaca; }
+.hozzavalok .nincs .jel { color: var(--nincs); }
+.hozzavalok .menny { margin-left: auto; color: var(--halvany); text-align: right; font-size: 19px; }
+.hozzavalok .megj { display: block; font-size: 16px; color: var(--halvany); }
+
+.lepesek { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; counter-reset: lepes; }
+.lepesek button {
+  display: flex; gap: 14px; width: 100%;
+  padding: 14px;
+  border: 2px solid var(--szegely);
+  border-radius: 14px;
+  background: var(--kartya);
+  text-align: left;
+  font-size: 22px;
+  line-height: 1.45;
+}
+.lepesek .szam {
+  flex: none;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: var(--fo); color: #fff;
+  display: grid; place-items: center;
+  font-weight: 800; font-size: 20px;
+}
+.lepesek button[aria-pressed="true"] { opacity: .45; }
+.lepesek button[aria-pressed="true"] .szam { background: var(--van); }
+.tipp { color: var(--halvany); font-size: 17px; margin: -4px 0 12px; }
