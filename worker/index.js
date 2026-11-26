@@ -9,7 +9,7 @@ const ENGEDETT_OLDALAK = [
   'receptneked.hu',
   'coolinarika.com',
   'recepti.com',
-  'stvarukusa.mondo.rs',
+  // stvarukusa.mondo.rs works from a laptop but refuses requests from Cloudflare (530).
 ];
 
 const ENGEDETT_ORIGINEK = [
@@ -17,11 +17,16 @@ const ENGEDETT_ORIGINEK = [
   'http://localhost:5180',
 ];
 
+// Recipes from these sites are translated to Hungarian when imported.
+const FORDITANDO_OLDALAK = ['coolinarika.com', 'recepti.com'];
+// Chosen after comparing models on real recipes: best Hungarian, ~30 s with thinking switched off.
+const FORDITO_MODELL = '@cf/qwen/qwen3.8-27b';
+
 const BONGESZO = 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131 Mobile Safari/537.36';
 const MAX_KEP = 5 * 1024 * 1024;
 
 export default {
-  async fetch(keres) {
+  async fetch(keres, env = {}) {
     const origin = keres.headers.get('origin') || '';
     const fejlec = {
       'content-type': 'application/json; charset=utf-8',
@@ -57,6 +62,11 @@ export default {
     if (recept && host.endsWith('streetkitchen.hu')) streetKitchenKiegeszit(recept, html);
     if (!recept || !recept.hozzavalok.length) return valasz({ hiba: 'nem-talalhato' }, 422);
 
+    const forditando = env.AI && FORDITANDO_OLDALAK.some((d) => host === d || host.endsWith('.' + d));
+    const forditas = forditando
+      ? forditMagyarra(env.AI, recept)
+      : null;
+
     recept.kep = recept.kepUrl ? await kepAdatkent(recept.kepUrl) : null;
     if (!recept.kep) {
       const megosztasiKep = kepCim((html.match(/<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i) || [])[1], cel.href);
@@ -64,6 +74,19 @@ export default {
     }
     delete recept.kepUrl;
     recept.forras = cel.href;
+
+    // The original lines are kept for ingredient matching (the Serbian keywords are reliable);
+    // the translated ones are what Mom reads.
+    if (forditas) {
+      const magyar = await forditas;
+      if (magyar) {
+        recept.eredetiHozzavalok = recept.hozzavalok;
+        recept.eredetiNev = recept.nev;
+        Object.assign(recept, magyar, { forditva: true });
+      } else {
+        recept.forditasSikertelen = true;
+      }
+    }
     return valasz(recept);
   },
 };
@@ -252,6 +275,66 @@ function adagszoveg(y) {
   if (Array.isArray(y)) y = y.find((x) => /\D/.test(String(x))) || y[0];
   const s = tisztit(y);
   return /^\d+$/.test(s) ? `${s} adag` : s;
+}
+
+/* ---------- translation (Cloudflare Workers AI) ---------- */
+
+const FORDITASI_UTASITAS = `Szerb, horvát vagy bosnyák receptet fordítasz magyarra egy idős magyar háziasszonynak.
+Szabályok:
+- Természetes, egyszerű magyar konyhanyelv. A hozzávalóknál a szokásos magyar elnevezést használd (pavlaka és kisela pavlaka = tejföl, slatka pavlaka = tejszín, pohovani/pohovano = rántott, beli luk u prahu = fokhagymapor, mladi sir = túró, kačkavalj = sajt, aleva paprika = pirospaprika, pečurke = gomba, mirođija = kapor, prezle = zsemlemorzsa, ulje = olaj).
+- Mértékegységek: kašika/žlica = evőkanál, kašičica/žličica = teáskanál, šolja = bögre, prstohvat = csipet, čen = gerezd, glavica = fej, kesica = csomag. A számokat és a g/ml/dl/kg értékeket változatlanul hagyd.
+- "po ukusu" és "po želji" = "ízlés szerint", a sor elejére írva (pl. "ízlés szerint só").
+- A lépéseket tegezve, kijelentő módban írd, ahogy egy szakácskönyv: "A hagymát apróra vágod, és üvegesre párolod."
+- Vigyázz a hamis barátokra: višnja = meggy, trešnja = cseresznye, kupus = káposzta, kiseli kupus = savanyú káposzta, tikvica = cukkini, plavi patlidžan = padlizsán, boranija/mahune = zöldbab, kukuruz = kukorica, cimet = fahéj, kvasac = élesztő, prašak za pecivo = sütőpor, šlag = tejszínhab.
+- Márkanevet (pl. Dolcela, Lino Lada) hagyd meg, de a mögötte álló köznevet fordítsd le magyarra (pl. "Dolcela Cimet rolice" = "Dolcela fahéjas csiga"). Angol szót ne használj.
+- Pontosan ugyanannyi elem legyen minden listában, ugyanabban a sorrendben.
+Csak a JSON-t add vissza, ugyanazokkal a kulcsokkal, amiket kaptál (pl. {"nev": "...", "hozzavalok": ["..."]} vagy {"lepesek": ["..."]}).`;
+
+const LEPES_CSOMAG = 3;
+
+// Translates in parallel pieces (name + ingredients, then the steps three at a time),
+// so a long recipe takes about as long as one short piece. Any failed piece → keep the original.
+async function forditMagyarra(ai, recept) {
+  const darabok = [{ nev: recept.nev, hozzavalok: recept.hozzavalok }];
+  for (let i = 0; i < recept.lepesek.length; i += LEPES_CSOMAG) {
+    darabok.push({ lepesek: recept.lepesek.slice(i, i + LEPES_CSOMAG) });
+  }
+  try {
+    const kesz = await Promise.all(darabok.map((d) => forditDarab(ai, d)));
+    return {
+      nev: tisztit(kesz[0].nev),
+      hozzavalok: kesz[0].hozzavalok.map(tisztit),
+      lepesek: kesz.slice(1).flatMap((d) => d.lepesek).map(tisztit),
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function forditDarab(ai, darab) {
+  const valasz = await Promise.race([
+    ai.run(FORDITO_MODELL, {
+      messages: [
+        { role: 'system', content: FORDITASI_UTASITAS },
+        { role: 'user', content: JSON.stringify(darab) },
+      ],
+      max_tokens: 2048,
+      temperature: 0.2,
+      chat_template_kwargs: { enable_thinking: false },
+    }),
+    new Promise((_, nem) => setTimeout(() => nem(new Error('idotullepes')), 50000)),
+  ]);
+  const szoveg = typeof valasz?.response === 'string'
+    ? valasz.response
+    : valasz?.response ? JSON.stringify(valasz.response) : (valasz?.choices?.[0]?.message?.content || '');
+  const json = JSON.parse(szoveg.slice(szoveg.indexOf('{'), szoveg.lastIndexOf('}') + 1));
+  for (const [kulcs, ertek] of Object.entries(darab)) {
+    const jo = Array.isArray(ertek)
+      ? Array.isArray(json[kulcs]) && json[kulcs].length === ertek.length && json[kulcs].every((x) => typeof x === 'string')
+      : typeof json[kulcs] === 'string';
+    if (!jo) throw new Error('rossz forma: ' + kulcs);
+  }
+  return json;
 }
 
 /* ---------- photo ---------- */

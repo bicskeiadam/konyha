@@ -183,7 +183,7 @@ function hozzavaloSor(h) {
     osztaly = van ? 'van' : (h.opcionalis ? '' : 'nincs');
     jel = van ? '✓' : (h.opcionalis ? '' : '✗');
   }
-  const megj = h.opcionalis ? '<span class="megj">ha van</span>' : (osztaly === 'nincs' ? '<span class="megj">nincs itthon</span>' : '');
+  const megj = h.opcionalis ? opcionalisCimke(h) : (osztaly === 'nincs' ? '<span class="megj">nincs itthon</span>' : '');
   // Built-in recipes: name + amount. Imported ones: the original line as written on the site.
   const szoveg = h.szoveg != null
     ? `<span class="sor-szoveg">${esc(h.szoveg)}${megj}</span>`
@@ -206,7 +206,7 @@ function receptOldal(id) {
     : `<div class="recept-fej">${receptKep(r)}<div><h1>${esc(r.nev)}</h1>${info ? `<p class="meta">${info}</p>` : ''}</div></div>`;
 
   const lab = r.sajat ? `
-    <p class="forras">Forrás: <a href="${esc(r.forras)}" target="_blank" rel="noopener">${esc(new URL(r.forras).hostname.replace(/^www\./, ''))}</a></p>
+    <p class="forras">${r.forditva ? 'Magyarra fordítva. Eredeti recept' : 'Forrás'}: <a href="${esc(r.forras)}" target="_blank" rel="noopener">${esc(new URL(r.forras).hostname.replace(/^www\./, ''))}</a></p>
     <button class="halk-gomb" data-recept-torles="${esc(r.id)}">Recept törlése</button>` : '';
 
   app.innerHTML = `
@@ -247,12 +247,14 @@ function ujRecept() {
   let html = `${vissza()}<h1>Új recept</h1>`;
 
   if (allapot === 'tolt') {
-    html += '<p class="uzenet">Egy pillanat, betöltöm a receptet…</p>';
+    html += FORDITANDO.test(linkBelole(link))
+      ? '<p class="uzenet">Betöltöm a receptet, és lefordítom magyarra…<br>Ez fél percig is eltarthat, várj türelemmel.</p>'
+      : '<p class="uzenet">Egy pillanat, betöltöm a receptet…</p>';
   } else if (allapot === 'elonezet') {
     const info = [recept.ido, recept.adag].filter(Boolean).map(esc).join(' · ');
     const sorok = recept.hozzavalok.map((h, i) => {
       const alap = h.id && hozzavaloById[h.id]?.alap;
-      const ha = h.opcionalis ? '<span class="megj">ha van</span>' : '';
+      const ha = h.opcionalis ? opcionalisCimke(h) : '';
       return `
       <li class="import-sor">
         <span class="sor-szoveg">${esc(h.szoveg)}${ha}</span>
@@ -266,6 +268,8 @@ function ujRecept() {
       <label class="cimke" for="recept-nev">A recept neve</label>
       <input id="recept-nev" class="mezo" value="${esc(recept.nev)}">
       ${info ? `<p class="meta">${info}</p>` : ''}
+      ${recept.forditva ? '<p class="tipp">Magyarra fordítva. Az eredeti receptet a recept alján lévő linken találod.</p>' : ''}
+      ${recept.forditasSikertelen ? '<p class="uzenet">A fordítás most nem sikerült, ezért eredeti nyelven látod. Később újra próbálhatod.</p>' : ''}
       <h2>Hozzávalók</h2>
       <p class="tipp">Ellenőrizd, melyik gombhoz tartozik. Ami „nem számít”, az is látszani fog a receptben.</p>
       <ul class="hozzavalok">${sorok}</ul>
@@ -279,7 +283,7 @@ function ujRecept() {
       <input id="link" class="mezo" type="url" inputmode="url" placeholder="https://…" value="${esc(link)}">
       <button class="nagy-gomb kozepen" data-betolt>Betöltés</button>
       <p class="tipp tipp-kozep">Tipp: a recept oldalán nyomd meg a <b>Megosztás</b> gombot, és válaszd a <b>Konyha</b> alkalmazást.</p>
-      <p class="tipp tipp-kozep">Működik: Nosalty, Mindmegette, Street Kitchen, Sóbors, Receptneked, Coolinarika, Recepti.com, Stvar ukusa.</p>
+      <p class="tipp tipp-kozep">Működik: Nosalty, Mindmegette, Street Kitchen, Sóbors, Receptneked, Coolinarika, Recepti.com.<br>A szerb és horvát recepteket magyarra fordítja.</p>
       <h2>Biztonsági mentés</h2>
       <p class="tipp">A hozzáadott receptek csak ezen a telefonon vannak. Néha érdemes elmenteni őket egy fájlba.</p>
       <button class="halk-gomb balra" data-export>Saját receptek mentése (${sajatReceptek.length})</button>
@@ -288,8 +292,17 @@ function ujRecept() {
   app.innerHTML = html;
 }
 
+// Serbian/Croatian sites: the reader translates these, which takes a while.
+const FORDITANDO = /^https?:\/\/([^/]+\.)?(coolinarika\.com|recepti\.com)\//i;
+
 // Lines like "1 tk fokhagymapor (opcionális)" or "po ukusu beli luk" don't count as missing.
-const OPCIONALIS = /opcion|elhagyhat|ha van|tetszés szerint|díszítéshez|tálaláshoz|po želji|po zelji|po ukusu|po izboru|за украс|по жељи|по укусу/i;
+const OPCIONALIS = /opcion|elhagyhat|ha van|ízlés szerint|tetszés szerint|díszítéshez|tálaláshoz|po želji|po zelji|po ukusu|po izboru|за украс|по жељи|по укусу/i;
+
+// Built-in recipes: "ha van" (kolbász, if you have it). Imported lines: "ízlés szerint", unless the line already says so.
+function opcionalisCimke(h) {
+  if (h.szoveg == null) return '<span class="megj">ha van</span>';
+  return /ízlés szerint/i.test(h.szoveg) ? '' : '<span class="megj">ízlés szerint</span>';
+}
 
 function linkBelole(szoveg) {
   const m = String(szoveg || '').match(/https?:\/\/[^\s<>"']+/i);
@@ -323,8 +336,18 @@ async function betolt(link) {
       ido: valasz.ido || '',
       adag: valasz.adag || '',
       forras: valasz.forras,
+      forditva: Boolean(valasz.forditva),
+      forditasSikertelen: Boolean(valasz.forditasSikertelen),
       lepesek: valasz.lepesek,
-      hozzavalok: valasz.hozzavalok.map((szoveg) => ({ szoveg, id: illeszt(szoveg), opcionalis: OPCIONALIS.test(szoveg) || undefined })),
+      // Match on the original line first (reliable Serbian keywords), then on the Hungarian translation.
+      hozzavalok: valasz.hozzavalok.map((szoveg, i) => {
+        const eredeti = valasz.eredetiHozzavalok?.[i] || '';
+        return {
+          szoveg,
+          id: illeszt(eredeti) || illeszt(szoveg),
+          opcionalis: OPCIONALIS.test(eredeti) || OPCIONALIS.test(szoveg) || undefined,
+        };
+      }),
       kepBlob,
       kepUrl: kepBlob ? URL.createObjectURL(kepBlob) : null,
     },
@@ -360,6 +383,7 @@ async function mentes() {
     ido: r.ido,
     adag: r.adag,
     forras: r.forras,
+    ...(r.forditva ? { forditva: true } : {}),
     lepesek: r.lepesek,
     hozzavalok: r.hozzavalok.map(({ szoveg, id, opcionalis }) => ({ szoveg, id: id || null, ...(opcionalis ? { opcionalis } : {}) })),
     kep: r.kepBlob,
