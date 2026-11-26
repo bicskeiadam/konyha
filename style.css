@@ -392,8 +392,42 @@ button:active, .fajl-gomb:active { transform: scale(.98); }
 .tap-fejlec-ertek { text-align: right; }
 .tap-fejlec small { display: block; font-size: 14px; font-weight: 500; opacity: .92; }
 .tap-lista { list-style: none; padding: 0; margin: 0; }
-.tap-elem { display: flex; align-items: center; gap: 12px; padding: 12px 16px; }
-.tap-elem + .tap-elem { border-top: 1px solid var(--szegely); }
+.tap-elem {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%;
+  padding: 12px 16px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+.tap-elem:active { transform: none; background: var(--fo-halvany); }
+.tap-lista li + li { border-top: 1px solid var(--szegely); }
+.tap-pontos {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: var(--r-kicsi);
+  background: var(--fo-halvany);
+  color: var(--fo-szoveg);
+  font-size: 13px;
+  font-weight: 700;
+  vertical-align: 2px;
+}
+
+/* Ingredient screen: new ingredient or corrected values */
+.szuro-cim { margin: 18px 0 0; font-weight: 700; }
+.ikon-racs { display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 8px; margin-top: 8px; }
+.ikon-valaszt {
+  height: 52px;
+  border: 2px solid var(--szegely);
+  border-radius: var(--r-kicsi);
+  background: var(--felulet);
+  font-size: 26px;
+}
+.ikon-valaszt[aria-pressed="true"] { border-color: var(--fo); background: var(--fo-halvany); }
+.ertek-racs { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; margin-top: 4px; }
+.egyseg { font-weight: 500; color: var(--halvany); }
+.eredeti { margin: 12px 0 0; }
 .tap-elem .ikon { width: 30px; font-size: 28px; flex: none; text-align: center; }
 .tap-kozep { flex: 1; min-width: 0; }
 .tap-kozep .nev { display: block; font-weight: 700; font-size: 20px; line-height: 1.2; }

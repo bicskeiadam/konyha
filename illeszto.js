@@ -23,20 +23,26 @@
     for (const h of adat.hozzavalok) {
       for (const k of h.kulcsok || []) {
         const egesz = k.startsWith('=');
-        kulcsok.push({ id: h.id, szo: normal(egesz ? k.slice(1) : k).trim(), egesz });
+        kulcsok.push({ id: h.id, szo: normal(egesz ? k.slice(1) : k).trim(), egesz, sajat: Boolean(h.sajat) });
       }
     }
     const tiltott = (adat.tiltott || []).map((t) => normal(t).trim());
 
     // The longest matching keyword wins: "fokhagym" beats "hagyma", "pirospaprik" beats "paprika".
+    // On a tie, an ingredient she added herself wins, being the more specific one
+    // ("kranjske kobasice" → her "Kranjska kobasica", not the generic Kolbász).
     return function illeszt(sor) {
       const n = normal(sor);
       if (tiltott.some((t) => n.includes(t))) return null;
       let legjobb = null;
       let hossz = 0;
+      let legjobbSajat = false;
       for (const k of kulcsok) {
         const talalt = k.egesz ? n.includes(' ' + k.szo + ' ') : n.includes(k.szo);
-        if (talalt && k.szo.length > hossz) { legjobb = k.id; hossz = k.szo.length; }
+        if (!talalt) continue;
+        if (k.szo.length > hossz || (k.szo.length === hossz && k.sajat && !legjobbSajat)) {
+          legjobb = k.id; hossz = k.szo.length; legjobbSajat = k.sajat;
+        }
       }
       return legjobb;
     };

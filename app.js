@@ -114,16 +114,17 @@ function tapanyagOldal() {
   const ertekSzoveg = (x, s) => (x.egyseg === 'kcal' ? `${szam(s[x.kulcs])} kcal` : `${szam(s[x.kulcs])} g ${x.nev.toLowerCase()}`);
   const lista = sorok.map((s) => {
     const tobbi = MERTEKEK.filter((x) => x.kulcs !== m.kulcs).map((x) => `<span>${ertekSzoveg(x, s)}</span>`).join('');
+    const jelzes = felulirasok[s.kulcs] || sajatHozzavalok.some((x) => x.id === s.kulcs) ? '<span class="tap-pontos">pontosítva</span>' : '';
     return `
-      <li class="tap-elem">
-        <span class="ikon" aria-hidden="true">${s.ikon}</span>
+      <li><button class="tap-elem" data-ugras="#/hozzavalo/${encodeURIComponent(s.kulcs)}">
+        <span class="ikon" aria-hidden="true">${s.ikon || '🥄'}</span>
         <span class="tap-kozep">
-          <span class="nev">${esc(s.nev)}</span>
+          <span class="nev">${esc(s.nev)}${jelzes}</span>
           <span class="tap-csik" aria-hidden="true" style="width:${Math.max(2, (s[m.kulcs] / max) * 100)}%"></span>
           <span class="tap-tobbi">${tobbi}</span>
         </span>
         <span class="tap-fo">${szam(s[m.kulcs])} ${m.egyseg}<small>${m.nev.toLowerCase()}</small></span>
-      </li>`;
+      </button></li>`;
   }).join('');
 
   app.innerHTML = `
@@ -131,7 +132,8 @@ function tapanyagOldal() {
     <h1>Tápérték</h1>
     <div class="szuro-sor">${MERTEKEK.map((x) =>
       `<button class="szuro" data-rendez="${x.kulcs}" aria-pressed="${x.kulcs === tapSzerint}">${esc(x.nev)}</button>`).join('')}</div>
-    <p class="tipp">${m.tobbJobb ? 'Elöl az, amiben a legtöbb van.' : 'Elöl az, amiben a legkevesebb van.'}</p>
+    <p class="tipp">${m.tobbJobb ? 'Elöl az, amiben a legtöbb van.' : 'Elöl az, amiben a legkevesebb van.'} Koppints egy hozzávalóra, ha pontosítanád.</p>
+    <button class="halk-gomb balra" data-uj-hozzavalo>${ikon('plus')} Új hozzávaló</button>
     <div class="tap-tabla">
       <div class="tap-fejlec">
         <span class="tap-fejlec-nev">Hozzávaló</span>
@@ -139,6 +141,196 @@ function tapanyagOldal() {
       </div>
       <ul class="tap-lista">${lista}</ul>
     </div>`;
+}
+
+/* ---------- Her own ingredients and corrected values (stored on the phone) ---------- */
+
+const SAJAT_HOZZAVALO_KULCS = 'konyha.sajatHozzavalok';
+const FELULIRAS_KULCS = 'konyha.felulirasok';
+// [{ id, nev, ikon, kat, ertek: [kcal, fehérje, zsír, szénhidrát], forras }]
+let sajatHozzavalok = JSON.parse(localStorage.getItem(SAJAT_HOZZAVALO_KULCS) || '[]');
+// { kulcs: { ertek: [...], forras } } - replaces the built-in estimate for that ingredient
+let felulirasok = JSON.parse(localStorage.getItem(FELULIRAS_KULCS) || '{}');
+let eredetiAdat = null;
+
+function sajatMent() {
+  localStorage.setItem(SAJAT_HOZZAVALO_KULCS, JSON.stringify(sajatHozzavalok));
+  localStorage.setItem(FELULIRAS_KULCS, JSON.stringify(felulirasok));
+}
+
+// Search keywords from the name: the whole name, plus each longer word without its last letter,
+// so "Kajmak" also matches "kajmakot". Words the app already knows are skipped: in "Kranjska kobasica"
+// only "kranjsk" is kept, so a plain "kobasica" in a recipe still means the generic Kolbász.
+function nevKulcsok(nev, ismertSzavak) {
+  const szavak = nev.toLowerCase().split(/[^\p{L}]+/u).filter((w) => w.length >= 3);
+  const tovek = szavak.map((w) => (w.length > 5 ? w.slice(0, -1) : w))
+    .filter((t) => !ismertSzavak.has(window.Illeszto.normal(t).trim()));
+  return [...new Set([nev.toLowerCase(), ...tovek])];
+}
+
+// Rebuilds the working data from the shipped file + her additions, so every screen sees the same values.
+function adatFrissit() {
+  if (!eredetiAdat) eredetiAdat = JSON.parse(JSON.stringify({ hozzavalok: adat.hozzavalok, tapanyagok: adat.tapanyagok }));
+  const ismertSzavak = new Set(eredetiAdat.hozzavalok.flatMap((h) => h.kulcsok || [])
+    .map((k) => window.Illeszto.normal(k.replace(/^=/, '')).trim()));
+  adat.hozzavalok = [
+    ...eredetiAdat.hozzavalok.filter((h) => !h.alap),
+    ...sajatHozzavalok.map((s) => ({ id: s.id, nev: s.nev, ikon: s.ikon, kat: s.kat, kulcsok: nevKulcsok(s.nev, ismertSzavak), sajat: true })),
+    ...eredetiAdat.hozzavalok.filter((h) => h.alap),
+  ];
+  adat.tapanyagok = { ...eredetiAdat.tapanyagok };
+  for (const s of sajatHozzavalok) adat.tapanyagok[s.id] = s.ertek;
+  for (const [kulcs, f] of Object.entries(felulirasok)) if (adat.tapanyagok[kulcs]) adat.tapanyagok[kulcs] = f.ertek;
+  hozzavaloById = Object.fromEntries(adat.hozzavalok.map((h) => [h.id, h]));
+  illeszt = window.Illeszto.keszit(adat);
+}
+
+const IKON_VALASZTEK = ['🥩', '🍗', '🐟', '🌭', '🥓', '🧀', '🥛', '🥚', '🧈', '🥣', '🍶', '🥬', '🥦', '🥕', '🧅', '🧄', '🥔', '🍅', '🫑', '🌽', '🫘', '🍄', '🌾', '🍚', '🍝', '🍞', '🥜', '🍎', '🍋', '🍯', '🫙', '🥄'];
+
+// Form state of the ingredient screen; "kulcs" is null for a new ingredient.
+let hForm = null;
+
+function hFormInit(kulcs) {
+  if (hForm && hForm.kulcs === kulcs) return;
+  const ertek = kulcs ? adat.tapanyagok[kulcs] : null;
+  const valtozat = (adat.tapanyagValtozatok || {})[kulcs];
+  const h = valtozat || hozzavaloById[kulcs];
+  const sajat = sajatHozzavalok.find((s) => s.id === kulcs);
+  hForm = {
+    kulcs,
+    nev: h ? h.nev : '',
+    ikon: (sajat && sajat.ikon) || (h && h.ikon) || '🥄',
+    kat: (sajat && sajat.kat) || (h && h.kat) || 'kamra',
+    ertek: ertek ? ertek.map((v) => String(v).replace('.', ',')) : ['', '', '', ''],
+    forras: (felulirasok[kulcs] || sajat || {}).forras || '',
+    allapot: '',
+    uzenet: '',
+  };
+}
+
+const HFORM_ERTEKEK = [['Kalória', 'kcal'], ['Fehérje', 'g'], ['Zsír', 'g'], ['Szénhidrát', 'g']];
+
+function hozzavaloOldal(kulcs) {
+  if (kulcs && !adat.tapanyagok[kulcs]) { location.replace('#/tapanyag'); return; }
+  hFormInit(kulcs);
+  const f = hForm;
+  const sajat = kulcs && sajatHozzavalok.some((s) => s.id === kulcs);
+  const beepitett = kulcs && !sajat;
+  const eredeti = beepitett ? eredetiAdat.tapanyagok[kulcs] : null;
+
+  const allapotSor = f.allapot === 'olvas' ? `<p class="uzenet">${ikon('camera')} Olvasom a címkét…</p>`
+    : f.allapot === 'becsul' ? '<p class="uzenet">Keresem a szokásos értékeket…</p>'
+    : f.uzenet ? `<p class="uzenet${f.allapot === 'hiba' ? ' hiba-uzenet' : ''}">${esc(f.uzenet)}</p>` : '';
+
+  const mezok = HFORM_ERTEKEK.map(([nev, egyseg], i) => `
+    <div>
+      <label class="cimke" for="h-${i}">${nev} <span class="egyseg">(${egyseg})</span></label>
+      <input id="h-${i}" class="mezo" data-hertek="${i}" value="${esc(f.ertek[i])}" inputmode="decimal" autocomplete="off">
+    </div>`).join('');
+
+  app.innerHTML = `
+    ${vissza()}
+    <h1>${kulcs ? esc(f.nev) : 'Új hozzávaló'}</h1>
+    ${kulcs ? '' : `
+      <label class="cimke" for="h-nev">Neve</label>
+      <input id="h-nev" class="mezo" data-hnev value="${esc(f.nev)}" autocomplete="off">
+      <p class="szuro-cim">Melyik csoportba?</p>
+      <div class="szuro-sor">${adat.kategoriak.map((k) =>
+        `<button class="szuro" data-hkat="${k.id}" aria-pressed="${f.kat === k.id}">${esc(k.nev)}</button>`).join('')}</div>
+      <p class="szuro-cim">Kép</p>
+      <div class="ikon-racs">${IKON_VALASZTEK.map((e) =>
+        `<button class="ikon-valaszt" data-hikon="${e}" aria-pressed="${f.ikon === e}">${e}</button>`).join('')}</div>`}
+    <h2>Tápérték 100 grammban</h2>
+    <p class="tipp">Fotózd le a csomagoláson a tápérték-táblázatot, és a számokat kiolvassa magától.</p>
+    <div class="kep-gombok">
+      <label class="halk-gomb fajl-gomb">${ikon('camera')} Címke fotó<input type="file" accept="image/*" capture="environment" data-cimke hidden></label>
+      <label class="halk-gomb fajl-gomb">${ikon('image')} Galériából<input type="file" accept="image/*" data-cimke hidden></label>
+    </div>
+    <button class="halk-gomb balra" data-becsles>Nincs címkéje (hentes, piac)</button>
+    ${allapotSor}
+    <div class="ertek-racs">${mezok}</div>
+    ${eredeti ? `<p class="tipp eredeti">Eredeti becslés: ${szam(eredeti[0])} kcal, ${szam(eredeti[1])} g fehérje, ${szam(eredeti[2])} g zsír, ${szam(eredeti[3])} g szénhidrát.</p>` : ''}
+    ${beepitett && felulirasok[kulcs] ? `<button class="halk-gomb balra" data-visszaallit>Eredeti visszaállítása</button>` : ''}
+    ${sajat ? `<button class="halk-gomb balra veszely" data-htorol>${ikon('trash')} Hozzávaló törlése</button>` : ''}
+    <div class="also-sav">
+      <button class="nagy-gomb" data-hment>${ikon('check')}<span class="gomb-szoveg">Mentés</span></button>
+    </div>`;
+}
+
+// Reads the nutrition table from a label photo through the reader (Cloudflare Workers AI).
+async function cimkeOlvasas(fajl) {
+  if (!navigator.onLine) { hForm.allapot = 'hiba'; hForm.uzenet = 'Ehhez internet kell.'; return rajzolMarad(); }
+  hForm.allapot = 'olvas'; hForm.uzenet = '';
+  rajzolMarad();
+  const ideiglenes = URL.createObjectURL(fajl);
+  try {
+    // Labels need more pixels than recipe photos to stay legible.
+    const blob = await kicsinyit(ideiglenes, 1600);
+    const valasz = await (await fetch(OLVASO_URL + 'cimke', {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kep: await blobbolAdat(blob) }),
+    })).json();
+    tapErtekBeir(valasz, 'cimke', 'Nem sikerült kiolvasni. Próbáld közelebbről, élesebben lefotózni a táblázatot.');
+  } catch (_) {
+    hForm.allapot = 'hiba'; hForm.uzenet = 'Most nem sikerült elérni a szolgáltatást. Próbáld újra kicsit később.';
+  } finally {
+    URL.revokeObjectURL(ideiglenes);
+  }
+  rajzolMarad();
+}
+
+async function becslesKeres() {
+  const nev = hForm.nev.trim();
+  if (!nev) { hForm.allapot = 'hiba'; hForm.uzenet = 'Előbb írd be a hozzávaló nevét.'; return rajzolMarad(); }
+  if (!navigator.onLine) { hForm.allapot = 'hiba'; hForm.uzenet = 'Ehhez internet kell.'; return rajzolMarad(); }
+  hForm.allapot = 'becsul'; hForm.uzenet = '';
+  rajzolMarad();
+  try {
+    const valasz = await (await fetch(OLVASO_URL + 'becsles', {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ nev }),
+    })).json();
+    tapErtekBeir(valasz, 'becsles', 'Erre most nem találtam értéket. Írd be a számokat kézzel.');
+  } catch (_) {
+    hForm.allapot = 'hiba'; hForm.uzenet = 'Most nem sikerült elérni a szolgáltatást. Próbáld újra kicsit később.';
+  }
+  rajzolMarad();
+}
+
+function tapErtekBeir(valasz, forras, hibaSzoveg) {
+  if (valasz.hiba) { hForm.allapot = 'hiba'; hForm.uzenet = hibaSzoveg; return; }
+  hForm.ertek = [valasz.kcal, valasz.feherje, valasz.zsir, valasz.szenhidrat].map((v) => String(v).replace('.', ','));
+  hForm.forras = forras;
+  hForm.allapot = valasz.ellenorizd ? 'hiba' : 'kesz';
+  hForm.uzenet = valasz.ellenorizd
+    ? (forras === 'cimke'
+      ? 'A számok nem egészen stimmelnek egymással. Nézd meg a címkén, és javítsd, ha kell.'
+      : 'Ez a becslés bizonytalan, a számok nem stimmelnek egymással. Javítsd, ha tudod a pontos értéket.')
+    : forras === 'cimke' ? 'Kiolvastam a címkéről. Nézd át, és mentsd el.' : 'Ezek szokásos, becsült értékek. Nézd át, és mentsd el.';
+}
+
+function rajzolMarad() {
+  const y = window.scrollY;
+  rajzol();
+  window.scrollTo(0, y);
+}
+
+function hozzavaloMentes() {
+  const f = hForm;
+  const ertek = f.ertek.map((v) => parseFloat(String(v).replace(',', '.')));
+  if (!f.kulcs && !f.nev.trim()) { f.allapot = 'hiba'; f.uzenet = 'Írd be a hozzávaló nevét.'; return rajzolMarad(); }
+  if (ertek.some((v) => !Number.isFinite(v) || v < 0)) { f.allapot = 'hiba'; f.uzenet = 'Mind a négy számot töltsd ki.'; return rajzolMarad(); }
+  if (ertek[1] + ertek[2] + ertek[3] > 101) { f.allapot = 'hiba'; f.uzenet = '100 grammban nem lehet több 100 grammnál. Nézd meg újra a számokat.'; return rajzolMarad(); }
+
+  if (!f.kulcs) {
+    sajatHozzavalok.push({ id: 'u' + Date.now().toString(36), nev: f.nev.trim(), ikon: f.ikon, kat: f.kat, ertek, forras: f.forras || 'kezi' });
+  } else if (sajatHozzavalok.some((s) => s.id === f.kulcs)) {
+    Object.assign(sajatHozzavalok.find((s) => s.id === f.kulcs), { ertek, forras: f.forras || 'kezi' });
+  } else {
+    felulirasok[f.kulcs] = { ertek, forras: f.forras || 'kezi' };
+  }
+  sajatMent();
+  adatFrissit();
+  hForm = null;
+  if (history.length > 1) history.back(); else location.replace('#/tapanyag');
 }
 
 // An imported recipe with no recognised ingredient can't be judged, so it never counts as "can cook".
@@ -639,11 +831,11 @@ function importHiba(kod, link) {
 }
 
 // Shrinks the photo to at most 900 px so a few hundred recipes still fit comfortably on the phone.
-async function kicsinyit(adatUrl) {
+async function kicsinyit(adatUrl, maxMeret = 900) {
   const kep = new Image();
   kep.src = adatUrl;
   await kep.decode();
-  const arany = Math.min(1, 900 / Math.max(kep.naturalWidth, kep.naturalHeight));
+  const arany = Math.min(1, maxMeret / Math.max(kep.naturalWidth, kep.naturalHeight));
   const vaszon = document.createElement('canvas');
   vaszon.width = Math.round(kep.naturalWidth * arany);
   vaszon.height = Math.round(kep.naturalHeight * arany);
@@ -718,7 +910,7 @@ async function exportal() {
   const receptek = await Promise.all(sajatReceptek.map(async (r) => ({ ...r, kep: r.kep ? await blobbolAdat(r.kep) : null })));
   // Photos she took of the built-in recipes.
   const kepek = await Promise.all((await Tar.kepek()).map(async (k) => ({ id: k.id, kep: await blobbolAdat(k.kep) })));
-  const fajl = new Blob([JSON.stringify({ konyhaMentes: 1, receptek, kepek })], { type: 'application/json' });
+  const fajl = new Blob([JSON.stringify({ konyhaMentes: 1, receptek, kepek, sajatHozzavalok, felulirasok })], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(fajl);
   a.download = `konyha-mentes-${new Date().toISOString().slice(0, 10)}.json`;
@@ -738,6 +930,14 @@ async function importal(fajl) {
     for (const k of mentett.kepek || []) {
       if (k.id && k.kep) await Tar.kepMent(k.id, await (await fetch(k.kep)).blob());
     }
+    // Her own ingredients and corrected values: restored ones win, others on this phone are kept.
+    if (Array.isArray(mentett.sajatHozzavalok)) {
+      const ujak = mentett.sajatHozzavalok.filter((s) => s.id && s.nev && Array.isArray(s.ertek));
+      sajatHozzavalok = [...sajatHozzavalok.filter((s) => !ujak.some((u) => u.id === s.id)), ...ujak];
+    }
+    if (mentett.felulirasok && typeof mentett.felulirasok === 'object') felulirasok = { ...felulirasok, ...mentett.felulirasok };
+    sajatMent();
+    adatFrissit();
     await sajatBetolt();
     alert(`${mentett.receptek.length} recept és ${(mentett.kepek || []).length} fénykép visszatöltve.`);
   } catch (_) {
@@ -781,7 +981,9 @@ function rajzol() {
   else if (ut.startsWith('#/uj')) ujRecept();
   else if (ut === '#/kezi' && keziMentve) { keziMentve = false; location.replace('#/'); return; }
   else if (ut === '#/kezi') keziOldal();
-  else if (ut === '#/tapanyag') tapanyagOldal();
+  else if (ut === '#/tapanyag') { hForm = null; tapanyagOldal(); }
+  else if (ut === '#/hozzavalo/uj') hozzavaloOldal(null);
+  else if (ut.startsWith('#/hozzavalo/')) hozzavaloOldal(decodeURIComponent(ut.slice(12)));
   else fomenu();
 
   const ujUtvonal = location.hash || '#/';
@@ -840,6 +1042,38 @@ app.addEventListener('click', async (e) => {
     tapSzerint = gomb.dataset.rendez;
     tapanyagOldal();
     window.scrollTo(0, 0);
+  } else if ('ujHozzavalo' in gomb.dataset) {
+    hForm = null;
+    location.hash = '#/hozzavalo/uj';
+  } else if (gomb.dataset.hkat) {
+    hForm.kat = gomb.dataset.hkat;
+    rajzolMarad();
+  } else if (gomb.dataset.hikon) {
+    hForm.ikon = gomb.dataset.hikon;
+    rajzolMarad();
+  } else if ('becsles' in gomb.dataset) {
+    becslesKeres();
+  } else if ('hment' in gomb.dataset) {
+    hozzavaloMentes();
+  } else if ('visszaallit' in gomb.dataset) {
+    delete felulirasok[hForm.kulcs];
+    sajatMent();
+    adatFrissit();
+    const kulcs = hForm.kulcs;
+    hForm = null;
+    hFormInit(kulcs);
+    rajzolMarad();
+  } else if ('htorol' in gomb.dataset) {
+    const kulcs = hForm.kulcs;
+    if (confirm(`Biztosan törlöd ezt a hozzávalót?\n\n${hForm.nev}`)) {
+      sajatHozzavalok = sajatHozzavalok.filter((s) => s.id !== kulcs);
+      itthon.delete(kulcs);
+      mentsItthon();
+      sajatMent();
+      adatFrissit();
+      hForm = null;
+      location.replace('#/tapanyag');
+    }
   }
 });
 
@@ -850,11 +1084,15 @@ app.addEventListener('change', (e) => {
     importal(e.target.files[0]);
   } else if (e.target.matches('[data-kep]') && e.target.files[0]) {
     kepFeldolgoz(e.target.dataset.kep, e.target.files[0]);
+  } else if (e.target.matches('[data-cimke]') && e.target.files[0]) {
+    cimkeOlvasas(e.target.files[0]);
   }
 });
 
 app.addEventListener('input', (e) => {
   if (e.target.dataset.kezi) kezi[e.target.dataset.kezi] = e.target.value;
+  else if ('hnev' in e.target.dataset && hForm) hForm.nev = e.target.value;
+  else if (e.target.dataset.hertek && hForm) { hForm.ertek[+e.target.dataset.hertek] = e.target.value; hForm.forras = hForm.forras || 'kezi'; }
 });
 
 app.addEventListener('keydown', (e) => {
@@ -880,8 +1118,7 @@ async function indul() {
     app.innerHTML = '<p class="uzenet">Most nem sikerült betölteni a recepteket. Csatlakozz egyszer wifire, utána internet nélkül is működik.</p>';
     return;
   }
-  hozzavaloById = Object.fromEntries(adat.hozzavalok.map((h) => [h.id, h]));
-  illeszt = window.Illeszto.keszit(adat);
+  adatFrissit();
   await sajatBetolt();
   if (link) betolt(link); else rajzol();
 }

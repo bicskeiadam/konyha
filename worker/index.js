@@ -1,4 +1,7 @@
-// Konyha recipe reader: GET /?url=<recipe page> → the recipe as JSON, with the photo inlined.
+// Konyha recipe reader:
+//   GET  /?url=<recipe page>   → the recipe as JSON, with the photo inlined
+//   POST /cimke  {kep}         → nutrition per 100 g read from a photo of a package label
+//   POST /becsles {nev}        → typical nutrition per 100 g for an unpackaged food
 // Only reads from the recipe sites below, and only answers the app's own origins.
 
 const ENGEDETT_OLDALAK = [
@@ -31,11 +34,31 @@ export default {
     const fejlec = {
       'content-type': 'application/json; charset=utf-8',
       'access-control-allow-origin': ENGEDETT_ORIGINEK.includes(origin) ? origin : ENGEDETT_ORIGINEK[0],
+      'access-control-allow-methods': 'GET, POST, OPTIONS',
+      'access-control-allow-headers': 'content-type',
       'vary': 'origin',
     };
     const valasz = (adat, statusz = 200) => new Response(JSON.stringify(adat), { status: statusz, headers: fejlec });
 
     if (keres.method === 'OPTIONS') return new Response(null, { headers: fejlec });
+
+    const ut = new URL(keres.url).pathname;
+    if (keres.method === 'POST' && (ut === '/cimke' || ut === '/becsles')) {
+      if (!env.AI) return valasz({ hiba: 'nincs-ai' }, 500);
+      let test;
+      try { test = await keres.json(); } catch { return valasz({ hiba: 'rossz-keres' }, 400); }
+      if (ut === '/cimke') {
+        if (typeof test.kep !== 'string' || !test.kep.startsWith('data:image/') || test.kep.length > 4_000_000) {
+          return valasz({ hiba: 'rossz-kep' }, 400);
+        }
+        const ertek = await cimkeOlvas(env.AI, test.kep);
+        return ertek ? valasz(ertek) : valasz({ hiba: 'nem-olvashato' }, 422);
+      }
+      const nev = String(test.nev || '').trim().slice(0, 80);
+      if (!nev) return valasz({ hiba: 'rossz-keres' }, 400);
+      const ertek = await becsles(env.AI, nev);
+      return ertek ? valasz(ertek) : valasz({ hiba: 'nem-sikerult' }, 422);
+    }
 
     let cel;
     try {
@@ -335,6 +358,100 @@ async function forditDarab(ai, darab) {
     if (!jo) throw new Error('rossz forma: ' + kulcs);
   }
   return json;
+}
+
+/* ---------- nutrition: package labels and estimates ---------- */
+
+// Chosen after testing on real Serbian labels: 5/6 exact in ~2 s (Llama 4 Scout 4/6, Mistral Small 0/6).
+const CIMKE_MODELL = '@cf/google/gemma-4-26b-a4b-it';
+const BECSLO_MODELL = '@cf/google/gemma-4-26b-a4b-it';
+
+const CIMKE_UTASITAS = `You read nutrition labels on food packages photographed in Serbia (Serbian Latin or Cyrillic, sometimes Croatian, Hungarian or English).
+Find the values PER 100 g (or per 100 ml), not per serving:
+- energy in kcal ("energetska vrednost", "energija", "енергетска вредност"); if only kJ is given, divide by 4.184
+- protein ("proteini", "беланчевине", "bjelančevine")
+- fat ("masti", "масти") - the total, not "of which saturated"
+- carbohydrates ("ugljeni hidrati", "угљени хидрати") - the total, not "of which sugars"
+Use a dot as the decimal separator. Answer with JSON only:
+{"kcal": number, "feherje": number, "zsir": number, "szenhidrat": number}
+If the label is not readable or not a nutrition table, answer {"hiba": "nem-olvashato"}.`;
+
+const BECSLES_UTASITAS = `You give typical nutrition values per 100 g of a RAW, unpackaged food as sold in Serbia or Hungary (e.g. butcher's meat, market vegetables, eggs).
+The name may be Hungarian or Serbian (Latin or Cyrillic). First identify the food and its common English name
+(examples: pastrnjak = parsnip, cvekla = beetroot, paškanat = parsnip, mirođija = dill, junetina = beef, svinjski vrat = pork neck, csirkemáj = chicken liver).
+Then use standard food composition data (USDA FoodData Central) for that raw item.
+Answer with JSON only: {"angol": "English name", "mire": "the item in Hungarian", "kcal": number, "feherje": number, "zsir": number, "szenhidrat": number}`;
+
+function aiSzoveg(valasz) {
+  if (typeof valasz?.response === 'string') return valasz.response;
+  if (valasz?.response) return JSON.stringify(valasz.response);
+  return valasz?.choices?.[0]?.message?.content || '';
+}
+
+// Plausibility: grams can't exceed 100 per 100 g, and kcal should be close to 4·protein + 9·fat + 4·carbs.
+function tapErtek(json) {
+  const szam = (v) => (typeof v === 'number' ? v : parseFloat(String(v ?? '').replace(',', '.')));
+  const e = { kcal: szam(json.kcal), feherje: szam(json.feherje), zsir: szam(json.zsir), szenhidrat: szam(json.szenhidrat) };
+  if (Object.values(e).some((v) => !Number.isFinite(v) || v < 0)) return null;
+  if (e.feherje + e.zsir + e.szenhidrat > 101 || e.kcal > 950) return null;
+  const szamolt = 4 * e.feherje + 9 * e.zsir + 4 * e.szenhidrat;
+  e.ellenorizd = Math.abs(szamolt - e.kcal) > Math.max(25, e.kcal * 0.2);
+  for (const k of ['kcal', 'feherje', 'zsir', 'szenhidrat']) e[k] = Math.round(e[k] * 10) / 10;
+  return e;
+}
+
+async function aiJson(ai, modell, uzenetek, ido = 45000) {
+  const valasz = await Promise.race([
+    ai.run(modell, { messages: uzenetek, max_tokens: 400, temperature: 0, chat_template_kwargs: { enable_thinking: false } }),
+    new Promise((_, nem) => setTimeout(() => nem(new Error('idotullepes')), ido)),
+  ]);
+  const szoveg = aiSzoveg(valasz);
+  return JSON.parse(szoveg.slice(szoveg.indexOf('{'), szoveg.lastIndexOf('}') + 1));
+}
+
+async function cimkeOlvas(ai, kep) {
+  try {
+    const json = await aiJson(ai, CIMKE_MODELL, [
+      { role: 'system', content: CIMKE_UTASITAS },
+      { role: 'user', content: [
+        { type: 'text', text: 'Read the per 100 g nutrition values from this label.' },
+        { type: 'image_url', image_url: { url: kep } },
+      ] },
+    ]);
+    return json.hiba ? null : tapErtek(json);
+  } catch {
+    return null;
+  }
+}
+
+// The same question gives different numbers from run to run (kohlrabi once 27 kcal, once 49),
+// so ask three times in parallel, take the median of each value, and flag it when the answers disagree.
+async function becsles(ai, nev) {
+  const egy = async () => {
+    try {
+      const json = await aiJson(ai, BECSLO_MODELL, [
+        { role: 'system', content: BECSLES_UTASITAS },
+        { role: 'user', content: nev },
+      ]);
+      return tapErtek(json);
+    } catch {
+      return null;
+    }
+  };
+  const valaszok = (await Promise.all([egy(), egy(), egy()])).filter(Boolean);
+  if (!valaszok.length) return null;
+  const kozep = (tomb) => { const s = [...tomb].sort((a, b) => a - b); return s[Math.floor(s.length / 2)]; };
+  const e = {};
+  let szetszort = false;
+  for (const k of ['kcal', 'feherje', 'zsir', 'szenhidrat']) {
+    const ertekek = valaszok.map((v) => v[k]);
+    e[k] = kozep(ertekek);
+    if (Math.max(...ertekek) - Math.min(...ertekek) > Math.max(k === 'kcal' ? 15 : 2, e[k] * 0.25)) szetszort = true;
+  }
+  const ellenorzott = tapErtek(e);
+  if (!ellenorzott) return null;
+  ellenorzott.ellenorizd = ellenorzott.ellenorizd || szetszort || valaszok.length < 2;
+  return ellenorzott;
 }
 
 /* ---------- photo ---------- */
