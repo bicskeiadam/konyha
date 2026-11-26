@@ -75,12 +75,13 @@ const szam = (v) => v.toLocaleString('hu-HU', { maximumFractionDigits: 1 });
 
 /* ---------- Ingredient nutrition page ---------- */
 
-let tabla = { szerint: 'feherje', irany: 'le', kat: 'mind', csakItthon: false };
+let tapSzerint = 'feherje';
+// Always best first: the most protein, but the fewest calories, carbs and fat.
 const MERTEKEK = [
-  { kulcs: 'feherje', nev: 'Fehérje', egyseg: 'g' },
-  { kulcs: 'kcal', nev: 'Kalória', egyseg: 'kcal' },
-  { kulcs: 'szenhidrat', nev: 'Szénhidrát', egyseg: 'g' },
-  { kulcs: 'zsir', nev: 'Zsír', egyseg: 'g' },
+  { kulcs: 'feherje', nev: 'Fehérje', egyseg: 'g', tobbJobb: true },
+  { kulcs: 'kcal', nev: 'Kalória', egyseg: 'kcal', tobbJobb: false },
+  { kulcs: 'szenhidrat', nev: 'Szénhidrát', egyseg: 'g', tobbJobb: false },
+  { kulcs: 'zsir', nev: 'Zsír', egyseg: 'g', tobbJobb: false },
 ];
 
 // One row per entry in the nutrition table; chicken cuts get their own names, salt/pepper/water are left out.
@@ -98,15 +99,10 @@ function tapanyagSorok() {
 }
 
 function tapanyagOldal() {
-  const m = MERTEKEK.find((x) => x.kulcs === tabla.szerint);
-  let sorok = tapanyagSorok();
-  if (tabla.kat !== 'mind') sorok = sorok.filter((s) => s.kat === tabla.kat);
-  if (tabla.csakItthon) sorok = sorok.filter((s) => s.gomb === 'olaj' || itthon.has(s.gomb));
-  sorok.sort((a, b) => (tabla.irany === 'le' ? b[m.kulcs] - a[m.kulcs] : a[m.kulcs] - b[m.kulcs]) || a.nev.localeCompare(b.nev, 'hu'));
-  const max = Math.max(...tapanyagSorok().map((s) => s[m.kulcs]), 1);
-
-  const gomb = (attr, ertek, felirat, aktiv) =>
-    `<button class="szuro" ${attr}="${ertek}" aria-pressed="${aktiv}">${esc(felirat)}</button>`;
+  const m = MERTEKEK.find((x) => x.kulcs === tapSzerint);
+  const sorok = tapanyagSorok();
+  sorok.sort((a, b) => (m.tobbJobb ? b[m.kulcs] - a[m.kulcs] : a[m.kulcs] - b[m.kulcs]) || a.nev.localeCompare(b.nev, 'hu'));
+  const max = Math.max(...sorok.map((s) => s[m.kulcs]), 1);
 
   const lista = sorok.map((s) => {
     const tobbi = MERTEKEK.filter((x) => x.kulcs !== m.kulcs)
@@ -127,21 +123,10 @@ function tapanyagOldal() {
     ${vissza()}
     <h1>Tápérték</h1>
     <p class="alcim">100 gramm nyers hozzávalóban.</p>
-    <p class="szuro-cim">Mi szerint?</p>
-    <div class="szuro-sor">${MERTEKEK.map((x) => gomb('data-rendez', x.kulcs, x.nev, x.kulcs === tabla.szerint)).join('')}</div>
-    <div class="szuro-sor">
-      ${gomb('data-irany', 'le', 'Legtöbb elöl', tabla.irany === 'le')}
-      ${gomb('data-irany', 'fel', 'Legkevesebb elöl', tabla.irany === 'fel')}
-    </div>
-    <p class="szuro-cim">Melyik csoport?</p>
-    <div class="szuro-sor">
-      ${gomb('data-kat', 'mind', 'Mind', tabla.kat === 'mind')}
-      ${adat.kategoriak.map((k) => gomb('data-kat', k.id, k.nev, tabla.kat === k.id)).join('')}
-    </div>
-    <div class="szuro-sor">${gomb('data-csak-itthon', '1', 'Csak ami itthon van', tabla.csakItthon)}</div>
-    ${sorok.length
-      ? `<ul class="tap-lista">${lista}</ul>`
-      : '<p class="uzenet">Ebben a csoportban nincs bepipálva semmi, ami itthon van.</p>'}`;
+    <div class="szuro-sor">${MERTEKEK.map((x) =>
+      `<button class="szuro" data-rendez="${x.kulcs}" aria-pressed="${x.kulcs === tapSzerint}">${esc(x.nev)}</button>`).join('')}</div>
+    <p class="tipp">${m.tobbJobb ? 'Elöl az, amiben a legtöbb van.' : 'Elöl az, amiben a legkevesebb van.'}</p>
+    <ul class="tap-lista">${lista}</ul>`;
 }
 
 // An imported recipe with no recognised ingredient can't be judged, so it never counts as "can cook".
@@ -646,14 +631,10 @@ app.addEventListener('click', async (e) => {
     }
   } else if ('export' in gomb.dataset) {
     exportal();
-  } else if (gomb.dataset.rendez || gomb.dataset.irany || gomb.dataset.kat || gomb.dataset.csakItthon) {
-    if (gomb.dataset.rendez) tabla.szerint = gomb.dataset.rendez;
-    if (gomb.dataset.irany) tabla.irany = gomb.dataset.irany;
-    if (gomb.dataset.kat) tabla.kat = gomb.dataset.kat;
-    if (gomb.dataset.csakItthon) tabla.csakItthon = !tabla.csakItthon;
-    const y = window.scrollY;
+  } else if (gomb.dataset.rendez) {
+    tapSzerint = gomb.dataset.rendez;
     tapanyagOldal();
-    window.scrollTo(0, y);
+    window.scrollTo(0, 0);
   }
 });
 

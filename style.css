@@ -225,8 +225,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .tap-megj { margin: 8px 0 0; font-size: 16px; color: var(--halvany); line-height: 1.35; }
 
 /* Ingredient nutrition page */
-.szuro-cim { margin: 16px 0 6px; font-weight: 700; }
-.szuro-sor { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+.szuro-sor { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 16px 0 8px; }
+@media (min-width: 480px) { .szuro-sor { grid-template-columns: repeat(4, 1fr); } }
 .szuro {
   min-height: 48px;
   padding: 0 16px;
