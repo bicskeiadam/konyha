@@ -205,6 +205,25 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .tipp { color: var(--halvany); font-size: 17px; margin: -4px 0 12px; }
 .tipp-kozep { text-align: center; margin: 14px 0 0; }
 
+/* Nutrition */
+.recept-kartya .tap-sor { display: block; font-size: 17px; color: var(--van); font-weight: 700; margin-top: 2px; }
+.tapertek {
+  margin: 16px 0 4px;
+  padding: 12px 14px;
+  border-radius: var(--sarok);
+  background: var(--kartya);
+  border: 2px solid var(--szegely);
+}
+.tapertek table { width: 100%; border-collapse: collapse; font-size: 20px; }
+.tapertek th, .tapertek td { padding: 6px 4px; text-align: right; }
+.tapertek th:first-child { text-align: left; }
+.tapertek thead th { font-size: 17px; color: var(--halvany); font-weight: 600; vertical-align: bottom; line-height: 1.2; }
+.tapertek thead small { font-size: 15px; }
+.tapertek tbody tr + tr { border-top: 1px solid var(--szegely); }
+.tapertek tbody td:nth-child(2) { font-weight: 800; }
+.tapertek tbody tr:nth-child(2) td:nth-child(2) { color: var(--van); }
+.tap-megj { margin: 8px 0 0; font-size: 16px; color: var(--halvany); line-height: 1.35; }
+
 /* Imported recipes: photos */
 .kiskep { width: 64px; height: 64px; border-radius: 14px; object-fit: cover; flex: none; }
 .nagykep {

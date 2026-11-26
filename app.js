@@ -40,10 +40,37 @@ function osszesRecept() {
 
 // Only recognised, non-optional, non-staple ingredients count as "missing".
 function hianyzik(recept) {
-  return recept.hozzavalok
+  return [...new Set(recept.hozzavalok
     .filter((h) => h.id && hozzavaloById[h.id] && !h.opcionalis && !vanItthon(h.id))
-    .map((h) => hozzavaloById[h.id].nev);
+    .map((h) => hozzavaloById[h.id].nev))];
 }
+
+/* ---------- Nutrition (built-in recipes: grams × per-100 g table) ---------- */
+
+// Optional ingredients ("ha van") only count when they're ticked as being at home,
+// so the numbers match what she'll actually put in the pot.
+function tapertek(recept) {
+  if (recept.sajat || !adat.tapanyagok || !recept.hozzavalok.every((h) => typeof h.g === 'number')) return null;
+  const osszes = { kcal: 0, feherje: 0, zsir: 0, szenhidrat: 0 };
+  const kimaradt = [];
+  const benne = [];
+  for (const h of recept.hozzavalok) {
+    if (h.opcionalis && !itthon.has(h.id)) { kimaradt.push(hozzavaloById[h.id].nev); continue; }
+    if (h.opcionalis) benne.push(hozzavaloById[h.id].nev);
+    const [kcal, feherje, zsir, szenhidrat] = adat.tapanyagok[h.t || h.id] || [0, 0, 0, 0];
+    const x = h.g / 100;
+    osszes.kcal += kcal * x;
+    osszes.feherje += feherje * x;
+    osszes.zsir += zsir * x;
+    osszes.szenhidrat += szenhidrat * x;
+  }
+  const n = recept.adagSzam || 4;
+  const adag = Object.fromEntries(Object.entries(osszes).map(([k, v]) => [k, v / n]));
+  return { osszes, adag, adagSzam: n, kimaradt: [...new Set(kimaradt)], benne: [...new Set(benne)] };
+}
+
+const kerekKcal = (v) => Math.round(v / 10) * 10;
+const kerekG = (v) => Math.round(v);
 
 // An imported recipe with no recognised ingredient can't be judged, so it never counts as "can cook".
 function ismeretlen(recept) {
@@ -135,12 +162,15 @@ function receptKep(r, osztaly) {
 function receptKartya({ r, hiany }) {
   const hianySor = hiany.length ? `<span class="hiany">Kell még: ${esc(hiany.join(', '))}</span>` : '';
   const info = [r.ido, r.adag].filter(Boolean).map(esc).join(' · ');
+  const t = tapertek(r);
+  const tapSor = t ? `<span class="tap-sor">1 adag: ${kerekKcal(t.adag.kcal)} kcal · ${kerekG(t.adag.feherje)} g fehérje</span>` : '';
   return `
     <button class="recept-kartya" data-ugras="#/recept/${encodeURIComponent(r.id)}">
       ${receptKep(r, 'kiskep')}
       <span>
         <span class="nev">${esc(r.nev)}</span>
         ${info ? `<span class="info">${info}</span>` : ''}
+        ${tapSor}
         ${hianySor}
       </span>
       <span class="nyil" aria-hidden="true">›</span>
@@ -191,6 +221,33 @@ function hozzavaloSor(h) {
   return `<li class="${osztaly}"><span class="jel" aria-hidden="true">${jel}</span>${szoveg}</li>`;
 }
 
+function taperTabla(r) {
+  const t = tapertek(r);
+  if (!t) return '';
+  const sor = (nev, kulcs, egyseg) => {
+    const k = egyseg === 'kcal' ? kerekKcal : kerekG;
+    return `<tr><th>${nev}</th><td>${k(t.adag[kulcs])} ${egyseg}</td><td>${k(t.osszes[kulcs])} ${egyseg}</td></tr>`;
+  };
+  const megjegyzesek = [
+    r.megj,
+    t.benne.length ? `Benne van: ${t.benne.join(', ')}.` : '',
+    t.kimaradt.length ? `Nincs benne: ${t.kimaradt.join(', ')} (nincs bepipálva, hogy itthon van).` : '',
+  ].filter(Boolean).map(esc).join(' ');
+  return `
+    <div class="tapertek">
+      <table>
+        <thead><tr><th></th><th>1 adag</th><th>Az egész<br><small>(${t.adagSzam} adag)</small></th></tr></thead>
+        <tbody>
+          ${sor('Kalória', 'kcal', 'kcal')}
+          ${sor('Fehérje', 'feherje', 'g')}
+          ${sor('Zsír', 'zsir', 'g')}
+          ${sor('Szénhidrát', 'szenhidrat', 'g')}
+        </tbody>
+      </table>
+      <p class="tap-megj">Becsült érték. ${megjegyzesek}</p>
+    </div>`;
+}
+
 function receptOldal(id) {
   const r = osszesRecept().find((x) => x.id === id);
   if (!r) { location.replace('#/receptek'); return; }
@@ -212,6 +269,7 @@ function receptOldal(id) {
   app.innerHTML = `
     ${vissza()}
     ${fej}
+    ${taperTabla(r)}
     <h2>Hozzávalók</h2>
     <ul class="hozzavalok">${r.hozzavalok.map(hozzavaloSor).join('')}</ul>
     <h2>Elkészítés</h2>

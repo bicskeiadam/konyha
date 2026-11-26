@@ -1,7 +1,7 @@
 {
-  "verzio": 1,
+  "verzio": 2,
   "kategoriak": [
-    { "id": "hus", "nev": "Hús" },
+    { "id": "hus", "nev": "Hús, hal" },
     { "id": "zoldseg", "nev": "Zöldség" },
     { "id": "tej", "nev": "Tojás, tejtermék" },
     { "id": "kamra", "nev": "Kamra" }
@@ -13,6 +13,8 @@
     { "id": "daralt", "nev": "Darált hús", "ikon": "🍖", "kat": "hus", "kulcsok": [ "darált", "darálthús", "mleveno meso", "mleveno", "mljeveno", "faširan" ] },
     { "id": "kolbasz", "nev": "Kolbász", "ikon": "🌭", "kat": "hus", "kulcsok": [ "kolbász", "virsli", "kobasic", "kulen", "viršl" ] },
     { "id": "szalonna", "nev": "Szalonna", "ikon": "🥓", "kat": "hus", "kulcsok": [ "szalonna", "bacon", "slanin", "pančet" ] },
+    { "id": "hal", "nev": "Hal (filé)", "ikon": "🐟", "kat": "hus", "kulcsok": [ "=hal", "halat", "halfilé", "hekk", "tőkehal", "pangasius", "tilápia", "harcsa", "ponty", "pisztráng", "lazac", "=riba", "=ribe", "ribu", "oslić", "bakalar", "pastrmk", "šaran", "losos" ] },
+    { "id": "tonhal", "nev": "Tonhalkonzerv", "ikon": "🐠", "kat": "hus", "kulcsok": [ "tonhal", "tunjevin", "tuna" ] },
     { "id": "hagyma", "nev": "Vöröshagyma", "ikon": "🧅", "kat": "zoldseg", "kulcsok": [ "hagyma", "vöröshagym", "lilahagym", "újhagym", "crni luk", "=luk", "=luka", "glavica luka", "mladi luk" ] },
     { "id": "fokhagyma", "nev": "Fokhagyma", "ikon": "🧄", "kat": "zoldseg", "kulcsok": [ "fokhagym", "beli luk", "belog luka", "bijeli luk", "češnjak", "češnja" ] },
     { "id": "krumpli", "nev": "Krumpli", "ikon": "🥔", "kat": "zoldseg", "kulcsok": [ "krumpli", "burgonya", "krompir" ] },
@@ -24,12 +26,19 @@
     { "id": "gomba", "nev": "Gomba", "ikon": "🍄", "kat": "zoldseg", "kulcsok": [ "gomba", "csiperk", "pečurk", "šampinjon", "gljiv" ] },
     { "id": "borso", "nev": "Zöldborsó", "ikon": "🫛", "kat": "zoldseg", "kulcsok": [ "borsó", "zöldborsó", "grašak", "grašk" ] },
     { "id": "kapor", "nev": "Kapor", "ikon": "🌱", "kat": "zoldseg", "kulcsok": [ "kapor", "mirođij", "kopar" ] },
+    { "id": "kaposzta", "nev": "Káposzta", "ikon": "🥬", "kat": "zoldseg", "kulcsok": [ "káposzt", "fejes káposzt", "=kupus", "kupusa", "kelkáposzt" ] },
+    { "id": "savanyukaposzta", "nev": "Savanyú káposzta", "ikon": "🫙", "kat": "zoldseg", "kulcsok": [ "savanyú káposzt", "savanyúkáposzt", "káposztalev", "kiseli kupus", "kiselog kupus", "kiseo kupus", "kiselim kupus" ] },
+    { "id": "karfiol", "nev": "Karfiol", "ikon": "🌼", "kat": "zoldseg", "kulcsok": [ "karfiol", "cvjetač", "cvetač" ] },
+    { "id": "brokkoli", "nev": "Brokkoli", "ikon": "🥦", "kat": "zoldseg", "kulcsok": [ "brokkoli", "brokoli" ] },
+    { "id": "zoldbab", "nev": "Zöldbab", "ikon": "🥗", "kat": "zoldseg", "kulcsok": [ "zöldbab", "boranij", "mahun" ] },
+    { "id": "kukorica", "nev": "Kukorica", "ikon": "🌽", "kat": "zoldseg", "kulcsok": [ "kukoric", "csemegekukoric", "kukuruz" ] },
     { "id": "tojas", "nev": "Tojás", "ikon": "🥚", "kat": "tej", "kulcsok": [ "tojás", "jaje", "jaja", "jajet", "jaj" ] },
     { "id": "tej", "nev": "Tej", "ikon": "🥛", "kat": "tej", "kulcsok": [ "=tej", "tejjel", "mleko", "mlijeko", "mleka", "mlijeka" ] },
     { "id": "tejfol", "nev": "Tejföl", "ikon": "🥣", "kat": "tej", "kulcsok": [ "tejföl", "pavlak", "kisela pavlaka", "vrhnje", "kiselo vrhnje" ] },
     { "id": "turo", "nev": "Túró", "ikon": "🧀", "kat": "tej", "kulcsok": [ "túró", "mladi sir", "svježi sir", "sveži sir", "posni sir" ] },
     { "id": "sajt", "nev": "Sajt", "ikon": "🧀", "kat": "tej", "kulcsok": [ "sajt", "parmezán", "parmezan", "mozzarell", "trappista", "gouda", "cheddar", "ementáli", "edami", "=sir", "=sira", "kačkavalj", "gauda" ] },
     { "id": "vaj", "nev": "Vaj", "ikon": "🧈", "kat": "tej", "kulcsok": [ "=vaj", "vajjal", "vajat", "maslac", "putera", "puter" ] },
+    { "id": "joghurt", "nev": "Joghurt", "ikon": "🍶", "kat": "tej", "kulcsok": [ "joghurt", "jogurt", "kiselo mlek", "kiselog mlek" ] },
     { "id": "liszt", "nev": "Liszt", "ikon": "🌾", "kat": "kamra", "kulcsok": [ "liszt", "brašn", "brasn" ] },
     { "id": "rizs", "nev": "Rizs", "ikon": "🍚", "kat": "kamra", "kulcsok": [ "rizs", "pirinač", "pirinac", "riža", "rižu", "riže" ] },
     { "id": "teszta", "nev": "Száraztészta", "ikon": "🍝", "kat": "kamra", "kulcsok": [ "tészta", "spagetti", "penne", "fusilli", "makaróni", "metélt", "csusza", "lasagne", "testenin", "špaget", "makaron", "rezanc", "tjestenin", "fusili" ] },
@@ -37,14 +46,66 @@
     { "id": "lencse", "nev": "Lencse", "ikon": "🫘", "kat": "kamra", "kulcsok": [ "lencse", "sočiv", "sociv", "leća", "leće" ] },
     { "id": "pirospaprika", "nev": "Pirospaprika", "ikon": "🌶️", "kat": "kamra", "kulcsok": [ "pirospaprik", "fűszerpaprik", "őrölt paprik", "édesnemes", "aleva", "mlevena paprik", "mlevene paprik", "slatka paprika", "ljuta paprika", "paprika u prahu", "aleve paprik", "aleva paprik", "alevu paprik" ] },
     { "id": "paradicsomszosz", "nev": "Paradicsomszósz", "ikon": "🥫", "kat": "kamra", "kulcsok": [ "paradicsomszósz", "paradicsompüré", "sűrített paradicsom", "passata", "paszírozott paradicsom", "paradajz pire", "paradajz sos", "paradajz sok", "pelat", "pasirani paradajz", "pasirana rajčica", "koncentrat paradajz", "passzírozott paradicsom", "pasiranog paradajz" ] },
-    { "id": "zsemlemorzsa", "nev": "Zsemlemorzsa", "ikon": "🍞", "kat": "kamra", "kulcsok": [ "zsemlemorzs", "morzsa", "panko", "prezl", "krušne mrvic" ] },
+    { "id": "zsemlemorzsa", "nev": "Zsemlemorzsa", "ikon": "🥖", "kat": "kamra", "kulcsok": [ "zsemlemorzs", "morzsa", "panko", "prezl", "krušne mrvic", "kenyérmorzs" ] },
     { "id": "cukor", "nev": "Cukor", "ikon": "🍬", "kat": "kamra", "kulcsok": [ "cukor", "porcukor", "šećer", "secer" ] },
-    { "id": "so", "nev": "Só", "alap": true, "kulcsok": ["=só", "=sót", "sóval", "=so", "=soli", "=sol", "=sola"] },
-    { "id": "bors", "nev": "Bors", "alap": true, "kulcsok": ["=bors", "borssal", "=biber", "=bibera", "=papar", "=papra"] },
-    { "id": "olaj", "nev": "Olaj", "alap": true, "kulcsok": ["olaj", "=ulje", "=ulja", "=uljem", "zejtin"] },
-    { "id": "viz", "nev": "Víz", "alap": true, "kulcsok": ["=víz", "=vizet", "vízzel", "szódavíz", "ásványvíz", "=voda", "=vode", "=vodu", "=vodom", "mineralna voda", "mineralne vode"] }
+    { "id": "kenyer", "nev": "Kenyér", "ikon": "🍞", "kat": "kamra", "kulcsok": [ "kenyér", "kenyer", "zsemle", "kifli", "=hleb", "hleba", "hljeb", "=kruh", "kruha" ] },
+    { "id": "so", "nev": "Só", "alap": true, "kulcsok": [ "=só", "=sót", "sóval", "=so", "=soli", "=sol", "=sola" ] },
+    { "id": "bors", "nev": "Bors", "alap": true, "kulcsok": [ "=bors", "borssal", "=biber", "=bibera", "=papar", "=papra" ] },
+    { "id": "olaj", "nev": "Olaj", "alap": true, "kulcsok": [ "olaj", "=ulje", "=ulja", "=uljem", "zejtin" ] },
+    { "id": "viz", "nev": "Víz", "alap": true, "kulcsok": [ "=víz", "=vizet", "vízzel", "szódavíz", "ásványvíz", "=voda", "=vode", "=vodu", "=vodom", "mineralna voda", "mineralne vode" ] }
   ],
-  "tiltott": ["tejszín", "kókusztej", "kókuszt", "sütőtök", "babérlev", "sirće", "sirce", "kiselo mlek", "kiselog mlek", "slatka pavlak", "slatke pavlak", "slatko vrhnj", "slatkog vrhnj", "leveles tészt", "lisnato test", "lisnatog test", "zöldbab", "mahun", "kukoricaliszt", "praziluk", "póréhagym", "kakaópor", "vaníliás cukor", "zöldpaprika nélkül", "paradajz paprik"],
+  "tiltott": ["tejszín", "kókusztej", "kókuszt", "sütőtök", "babérlev", "sirće", "sirce", "slatka pavlak", "slatke pavlak", "slatko vrhnj", "slatkog vrhnj", "leveles tészt", "lisnato test", "lisnatog test", "kukoricaliszt", "praziluk", "póréhagym", "kakaópor", "vaníliás cukor", "zöldpaprika nélkül", "paradajz paprik", "kukoricakeményít", "gustin"],
+  "tapanyagok": {
+    "_": "per 100 g, nyersen: [kcal, fehérje g, zsír g, szénhidrát g]",
+    "csirke": [215, 18.6, 15.1, 0],
+    "csirkemell": [120, 22.5, 2.6, 0],
+    "csirkecomb": [210, 17, 15, 0],
+    "sertes": [215, 17.5, 16, 0],
+    "marha": [150, 21, 7, 0],
+    "daralt": [250, 17, 20, 0],
+    "kolbasz": [330, 15, 29, 1],
+    "szalonna": [500, 10, 50, 0],
+    "hal": [90, 18, 1.5, 0],
+    "tonhal": [115, 25.5, 1, 0],
+    "hagyma": [40, 1.1, 0.1, 9.3],
+    "fokhagyma": [149, 6.4, 0.5, 33],
+    "krumpli": [77, 2, 0.1, 17],
+    "paprika": [20, 0.9, 0.2, 4.6],
+    "paradicsom": [18, 0.9, 0.2, 3.9],
+    "repa": [41, 0.9, 0.2, 9.6],
+    "petrezselyem": [50, 1.5, 0.6, 10],
+    "tok": [17, 1.2, 0.3, 3.1],
+    "gomba": [22, 3.1, 0.3, 3.3],
+    "borso": [81, 5.4, 0.4, 14.5],
+    "kapor": [43, 3.5, 1.1, 7],
+    "kaposzta": [25, 1.3, 0.1, 5.8],
+    "savanyukaposzta": [19, 0.9, 0.1, 4.3],
+    "karfiol": [25, 1.9, 0.3, 5],
+    "brokkoli": [34, 2.8, 0.4, 6.6],
+    "zoldbab": [31, 1.8, 0.2, 7],
+    "kukorica": [80, 2.6, 1.2, 15],
+    "tojas": [143, 12.6, 9.5, 0.7],
+    "tej": [57, 3.3, 2.8, 4.7],
+    "tejfol": [200, 2.7, 20, 3.5],
+    "turo": [115, 17, 4.5, 3],
+    "sajt": [355, 26, 27, 1],
+    "vaj": [717, 0.9, 81, 0.1],
+    "joghurt": [61, 3.5, 3.3, 4.7],
+    "liszt": [364, 10, 1, 76],
+    "rizs": [360, 6.7, 0.6, 79],
+    "teszta": [360, 12.5, 1.5, 73],
+    "bab": [333, 23, 0.8, 60],
+    "lencse": [352, 24.6, 1.1, 63],
+    "pirospaprika": [282, 14, 13, 54],
+    "paradicsomszosz": [30, 1.4, 0.2, 5.5],
+    "zsemlemorzsa": [395, 13, 5, 72],
+    "kenyer": [265, 9, 3.2, 49],
+    "cukor": [400, 0, 0, 100],
+    "olaj": [884, 0, 100, 0],
+    "so": [0, 0, 0, 0],
+    "bors": [0, 0, 0, 0],
+    "viz": [0, 0, 0, 0]
+  },
   "receptek": [
     {
       "id": "paprikas-krumpli",
@@ -55,15 +116,16 @@
       "hozzavalok": [
         {
           "id": "krumpli",
-          "menny": "1 kg"
+          "menny": "1 kg",
+          "g": 1000
         },
-        { "id": "hagyma", "menny": "1 fej" },
-        { "id": "kolbasz", "menny": "20 dkg", "opcionalis": true },
-        { "id": "paprika", "menny": "1 db" },
-        { "id": "paradicsom", "menny": "1 db" },
-        { "id": "pirospaprika", "menny": "1 evőkanál" },
-        { "id": "olaj", "menny": "3 evőkanál" },
-        { "id": "so", "menny": "ízlés szerint" }
+        { "id": "hagyma", "menny": "1 fej", "g": 120 },
+        { "id": "kolbasz", "menny": "20 dkg", "opcionalis": true, "g": 200 },
+        { "id": "paprika", "menny": "1 db", "g": 100 },
+        { "id": "paradicsom", "menny": "1 db", "g": 120 },
+        { "id": "pirospaprika", "menny": "1 evőkanál", "g": 8 },
+        { "id": "olaj", "menny": "3 evőkanál", "g": 30 },
+        { "id": "so", "menny": "ízlés szerint", "g": 0 }
       ],
       "lepesek": [
         "A hagymát apróra vágod, és az olajon üvegesre párolod.",
@@ -71,7 +133,8 @@
         "Lehúzod a tűzről, és belekevered a pirospaprikát.",
         "Hozzáadod a felkockázott krumplit, a paprikát és a paradicsomot, majd annyi vizet öntesz rá, hogy éppen ellepje.",
         "Megsózod, és fedő alatt, lassú tűzön kb. 30 percig főzöd, amíg a krumpli megpuhul."
-      ]
+      ],
+      "adagSzam": 4
     },
     {
       "id": "csirkepaprikas",
@@ -82,16 +145,17 @@
       "hozzavalok": [
         {
           "id": "csirke",
-          "menny": "1 kg"
+          "menny": "1 kg",
+          "g": 650
         },
-        { "id": "hagyma", "menny": "2 fej" },
-        { "id": "paprika", "menny": "1 db" },
-        { "id": "paradicsom", "menny": "1 db" },
-        { "id": "pirospaprika", "menny": "2 evőkanál" },
-        { "id": "tejfol", "menny": "2 dl" },
-        { "id": "liszt", "menny": "1 evőkanál" },
-        { "id": "olaj", "menny": "3 evőkanál" },
-        { "id": "so", "menny": "ízlés szerint" }
+        { "id": "hagyma", "menny": "2 fej", "g": 240 },
+        { "id": "paprika", "menny": "1 db", "g": 100 },
+        { "id": "paradicsom", "menny": "1 db", "g": 120 },
+        { "id": "pirospaprika", "menny": "2 evőkanál", "g": 16 },
+        { "id": "tejfol", "menny": "2 dl", "g": 200 },
+        { "id": "liszt", "menny": "1 evőkanál", "g": 10 },
+        { "id": "olaj", "menny": "3 evőkanál", "g": 30 },
+        { "id": "so", "menny": "ízlés szerint", "g": 0 }
       ],
       "lepesek": [
         "A hagymát apróra vágod, és az olajon üvegesre párolod.",
@@ -101,7 +165,9 @@
         "A tejfölt simára kevered a liszttel, és egy kis forró lével elkevered.",
         "Hozzáöntöd a paprikáshoz, és még 5 percig forralod.",
         "Nokedlivel tálalod."
-      ]
+      ],
+      "megj": "A nokedli nincs benne.",
+      "adagSzam": 4
     },
     {
       "id": "nokedli",
@@ -112,13 +178,15 @@
       "hozzavalok": [
         {
           "id": "liszt",
-          "menny": "50 dkg"
+          "menny": "50 dkg",
+          "g": 500
         },
-        { "id": "tojas", "menny": "2 db" },
-        { "id": "viz", "menny": "kb. 3 dl" },
-        { "id": "so", "menny": "1 teáskanál" }
+        { "id": "tojas", "menny": "2 db", "g": 110 },
+        { "id": "viz", "menny": "kb. 3 dl", "g": 0 },
+        { "id": "so", "menny": "1 teáskanál", "g": 0 }
       ],
-      "lepesek": ["Egy nagy fazékban sós vizet forralsz.", "A lisztet, a tojásokat, a sót és a vizet sűrű, ragacsos tésztává kevered.", "A tésztát nokedliszaggatóval a forrásban lévő vízbe szaggatod.", "Ha a nokedli feljön a víz tetejére, még 1 percig főzöd, majd leszűröd.", "Kevés olajjal vagy vajjal összeforgatod, hogy ne ragadjon össze."]
+      "lepesek": ["Egy nagy fazékban sós vizet forralsz.", "A lisztet, a tojásokat, a sót és a vizet sűrű, ragacsos tésztává kevered.", "A tésztát nokedliszaggatóval a forrásban lévő vízbe szaggatod.", "Ha a nokedli feljön a víz tetejére, még 1 percig főzöd, majd leszűröd.", "Kevés olajjal vagy vajjal összeforgatod, hogy ne ragadjon össze."],
+      "adagSzam": 4
     },
     {
       "id": "sertesporkolt",
@@ -129,16 +197,17 @@
       "hozzavalok": [
         {
           "id": "sertes",
-          "menny": "1 kg (lapocka)"
+          "menny": "1 kg (lapocka)",
+          "g": 1000
         },
-        { "id": "hagyma", "menny": "3 fej" },
-        { "id": "fokhagyma", "menny": "2 gerezd", "opcionalis": true },
-        { "id": "paprika", "menny": "1 db" },
-        { "id": "paradicsom", "menny": "1 db" },
-        { "id": "pirospaprika", "menny": "2 evőkanál" },
-        { "id": "olaj", "menny": "3 evőkanál" },
-        { "id": "so", "menny": "ízlés szerint" },
-        { "id": "bors", "menny": "egy csipet" }
+        { "id": "hagyma", "menny": "3 fej", "g": 360 },
+        { "id": "fokhagyma", "menny": "2 gerezd", "opcionalis": true, "g": 10 },
+        { "id": "paprika", "menny": "1 db", "g": 100 },
+        { "id": "paradicsom", "menny": "1 db", "g": 120 },
+        { "id": "pirospaprika", "menny": "2 evőkanál", "g": 16 },
+        { "id": "olaj", "menny": "3 evőkanál", "g": 30 },
+        { "id": "so", "menny": "ízlés szerint", "g": 0 },
+        { "id": "bors", "menny": "egy csipet", "g": 0 }
       ],
       "lepesek": [
         "A húst kb. 3 cm-es kockákra vágod.",
@@ -148,7 +217,9 @@
         "Hozzáadod a paprikát, a paradicsomot és a fokhagymát, és kevés vizet öntesz alá.",
         "Fedő alatt, lassú tűzön kb. 1 óráig főzöd, amíg a hús megpuhul. A vizet mindig csak kis adagokban pótolod.",
         "Nokedlivel vagy főtt krumplival tálalod."
-      ]
+      ],
+      "megj": "A köret nincs benne.",
+      "adagSzam": 4
     },
     {
       "id": "gulyasleves",
@@ -159,19 +230,20 @@
       "hozzavalok": [
         {
           "id": "marha",
-          "menny": "50 dkg"
+          "menny": "50 dkg",
+          "g": 500
         },
-        { "id": "hagyma", "menny": "2 fej" },
-        { "id": "krumpli", "menny": "50 dkg" },
-        { "id": "repa", "menny": "2 db" },
-        { "id": "petrezselyem", "menny": "1 db" },
-        { "id": "paprika", "menny": "1 db" },
-        { "id": "paradicsom", "menny": "1 db" },
-        { "id": "fokhagyma", "menny": "2 gerezd", "opcionalis": true },
-        { "id": "pirospaprika", "menny": "2 evőkanál" },
-        { "id": "olaj", "menny": "3 evőkanál" },
-        { "id": "so", "menny": "ízlés szerint" },
-        { "id": "bors", "menny": "egy csipet" }
+        { "id": "hagyma", "menny": "2 fej", "g": 240 },
+        { "id": "krumpli", "menny": "50 dkg", "g": 500 },
+        { "id": "repa", "menny": "2 db", "g": 160 },
+        { "id": "petrezselyem", "menny": "1 db", "g": 80 },
+        { "id": "paprika", "menny": "1 db", "g": 100 },
+        { "id": "paradicsom", "menny": "1 db", "g": 120 },
+        { "id": "fokhagyma", "menny": "2 gerezd", "opcionalis": true, "g": 10 },
+        { "id": "pirospaprika", "menny": "2 evőkanál", "g": 16 },
+        { "id": "olaj", "menny": "3 evőkanál", "g": 30 },
+        { "id": "so", "menny": "ízlés szerint", "g": 0 },
+        { "id": "bors", "menny": "egy csipet", "g": 0 }
       ],
       "lepesek": [
         "A húst apró kockákra vágod.",
@@ -181,7 +253,8 @@
         "Hozzáadod a felkarikázott répát és petrezselymet, a paprikát, a paradicsomot és a fokhagymát.",
         "Felöntöd kb. 2 liter vízzel, és 20 percig főzöd.",
         "Hozzáadod a kockára vágott krumplit, és addig főzöd, amíg megpuhul."
-      ]
+      ],
+      "adagSzam": 6
     },
     {
       "id": "lecso",
@@ -192,15 +265,16 @@
       "hozzavalok": [
         {
           "id": "paprika",
-          "menny": "1 kg"
+          "menny": "1 kg",
+          "g": 1000
         },
-        { "id": "paradicsom", "menny": "50 dkg" },
-        { "id": "hagyma", "menny": "2 fej" },
-        { "id": "kolbasz", "menny": "20 dkg", "opcionalis": true },
-        { "id": "tojas", "menny": "4 db", "opcionalis": true },
-        { "id": "pirospaprika", "menny": "1 teáskanál" },
-        { "id": "olaj", "menny": "3 evőkanál" },
-        { "id": "so", "menny": "ízlés szerint" }
+        { "id": "paradicsom", "menny": "50 dkg", "g": 500 },
+        { "id": "hagyma", "menny": "2 fej", "g": 240 },
+        { "id": "kolbasz", "menny": "20 dkg", "opcionalis": true, "g": 200 },
+        { "id": "tojas", "menny": "4 db", "opcionalis": true, "g": 220 },
+        { "id": "pirospaprika", "menny": "1 teáskanál", "g": 3 },
+        { "id": "olaj", "menny": "3 evőkanál", "g": 30 },
+        { "id": "so", "menny": "ízlés szerint", "g": 0 }
       ],
       "lepesek": [
         "A hagymát felszeleteled, és az olajon üvegesre párolod.",
@@ -208,7 +282,8 @@
         "Hozzáadod a felcsíkozott paprikát, és kb. 10 percig párolod.",
         "Hozzáadod a felkockázott paradicsomot, a pirospaprikát és a sót, és még 10 percig főzöd.",
         "Ha van tojás, felvered, belekevered, és addig kevergeted, amíg megszilárdul."
-      ]
+      ],
+      "adagSzam": 4
     },
     {
       "id": "rantotta",
@@ -219,32 +294,35 @@
       "hozzavalok": [
         {
           "id": "tojas",
-          "menny": "4 db"
+          "menny": "4 db",
+          "g": 220
         },
-        { "id": "vaj", "menny": "1 evőkanál (vagy olaj)", "opcionalis": true },
-        { "id": "hagyma", "menny": "fél fej", "opcionalis": true },
-        { "id": "so", "menny": "egy csipet" },
-        { "id": "bors", "menny": "egy csipet" }
+        { "id": "vaj", "menny": "1 evőkanál (vagy olaj)", "opcionalis": true, "g": 15 },
+        { "id": "hagyma", "menny": "fél fej", "opcionalis": true, "g": 60 },
+        { "id": "so", "menny": "egy csipet", "g": 0 },
+        { "id": "bors", "menny": "egy csipet", "g": 0 }
       ],
-      "lepesek": ["Egy serpenyőben felolvasztod a vajat.", "Ha van hagyma, apróra vágva megpárolod rajta.", "A tojásokat egy tálban felvered, és megsózod.", "A serpenyőbe öntöd, és alacsony lángon, folyamatosan kevergetve addig sütöd, amíg megszilárdul.", "Megborsozod, és azonnal tálalod."]
+      "lepesek": ["Egy serpenyőben felolvasztod a vajat.", "Ha van hagyma, apróra vágva megpárolod rajta.", "A tojásokat egy tálban felvered, és megsózod.", "A serpenyőbe öntöd, és alacsony lángon, folyamatosan kevergetve addig sütöd, amíg megszilárdul.", "Megborsozod, és azonnal tálalod."],
+      "adagSzam": 2
     },
     {
       "id": "palacsinta",
       "nev": "Palacsinta",
       "ikon": "🥞",
       "ido": "40 perc",
-      "adag": "kb. 15 db",
+      "adag": "kb. 15 db (5 adag)",
       "hozzavalok": [
         {
           "id": "liszt",
-          "menny": "25 dkg"
+          "menny": "25 dkg",
+          "g": 250
         },
-        { "id": "tojas", "menny": "2 db" },
-        { "id": "tej", "menny": "4 dl" },
-        { "id": "viz", "menny": "1-2 dl (lehet szódavíz)" },
-        { "id": "cukor", "menny": "1 evőkanál" },
-        { "id": "olaj", "menny": "2 evőkanál + a sütéshez" },
-        { "id": "so", "menny": "egy csipet" }
+        { "id": "tojas", "menny": "2 db", "g": 110 },
+        { "id": "tej", "menny": "4 dl", "g": 410 },
+        { "id": "viz", "menny": "1-2 dl (lehet szódavíz)", "g": 0 },
+        { "id": "cukor", "menny": "1 evőkanál", "g": 12 },
+        { "id": "olaj", "menny": "2 evőkanál + a sütéshez", "g": 30 },
+        { "id": "so", "menny": "egy csipet", "g": 0 }
       ],
       "lepesek": [
         "A lisztet, a tojásokat, a cukrot és a sót egy tálba teszed.",
@@ -253,7 +331,9 @@
         "Egy serpenyőt kevés olajjal felforrósítasz, és egy merőkanálnyi tésztát öntesz bele.",
         "Megdöntöd a serpenyőt, hogy a tészta vékonyan elterüljön, és mindkét oldalát aranybarnára sütöd.",
         "Lekvárral vagy kakaóval tálalod."
-      ]
+      ],
+      "adagSzam": 5,
+      "megj": "A töltelék (lekvár, kakaó) nincs benne."
     },
     {
       "id": "turos-csusza",
@@ -264,14 +344,16 @@
       "hozzavalok": [
         {
           "id": "teszta",
-          "menny": "50 dkg (széles metélt)"
+          "menny": "50 dkg (széles metélt)",
+          "g": 500
         },
-        { "id": "turo", "menny": "25 dkg" },
-        { "id": "tejfol", "menny": "2 dl" },
-        { "id": "szalonna", "menny": "15 dkg", "opcionalis": true },
-        { "id": "so", "menny": "ízlés szerint" }
+        { "id": "turo", "menny": "25 dkg", "g": 250 },
+        { "id": "tejfol", "menny": "2 dl", "g": 200 },
+        { "id": "szalonna", "menny": "15 dkg", "opcionalis": true, "g": 150 },
+        { "id": "so", "menny": "ízlés szerint", "g": 0 }
       ],
-      "lepesek": ["A tésztát bő, sós vízben kifőzöd, és leszűröd.", "Ha van szalonna, apró kockákra vágod, és egy serpenyőben ropogósra sütöd.", "A tésztát összeforgatod a szalonna zsírjával vagy egy kis olajjal.", "Tányérra szeded, a tetejére morzsolod a túrót, és rákanalazod a tejfölt.", "A tetejét megszórod a pirított szalonnával."]
+      "lepesek": ["A tésztát bő, sós vízben kifőzöd, és leszűröd.", "Ha van szalonna, apró kockákra vágod, és egy serpenyőben ropogósra sütöd.", "A tésztát összeforgatod a szalonna zsírjával vagy egy kis olajjal.", "Tányérra szeded, a tetejére morzsolod a túrót, és rákanalazod a tejfölt.", "A tetejét megszórod a pirított szalonnával."],
+      "adagSzam": 4
     },
     {
       "id": "rakott-krumpli",
@@ -282,13 +364,14 @@
       "hozzavalok": [
         {
           "id": "krumpli",
-          "menny": "1 kg"
+          "menny": "1 kg",
+          "g": 1000
         },
-        { "id": "tojas", "menny": "5 db" },
-        { "id": "kolbasz", "menny": "20 dkg" },
-        { "id": "tejfol", "menny": "4 dl" },
-        { "id": "vaj", "menny": "a tál kikenéséhez" },
-        { "id": "so", "menny": "ízlés szerint" }
+        { "id": "tojas", "menny": "5 db", "g": 275 },
+        { "id": "kolbasz", "menny": "20 dkg", "g": 200 },
+        { "id": "tejfol", "menny": "4 dl", "g": 400 },
+        { "id": "vaj", "menny": "a tál kikenéséhez", "g": 10 },
+        { "id": "so", "menny": "ízlés szerint", "g": 0 }
       ],
       "lepesek": [
         "A krumplit héjában megfőzöd, a tojásokat keményre főzöd.",
@@ -296,7 +379,8 @@
         "Egy tűzálló tálat kikensz vajjal. Rétegezed: krumpli, tojás, kolbász, egy kis tejföl, és sózod.",
         "A legfelső réteg krumpli legyen, ezt bőven megkened tejföllel.",
         "Előmelegített sütőben, 180 fokon kb. 40 percig sütöd, amíg a teteje megpirul."
-      ]
+      ],
+      "adagSzam": 4
     },
     {
       "id": "tokfozelek",
@@ -307,16 +391,18 @@
       "hozzavalok": [
         {
           "id": "tok",
-          "menny": "1 kg (gyalult)"
+          "menny": "1 kg (gyalult)",
+          "g": 1000
         },
-        { "id": "hagyma", "menny": "1 fej" },
-        { "id": "kapor", "menny": "1 csokor" },
-        { "id": "tejfol", "menny": "2 dl" },
-        { "id": "liszt", "menny": "2 evőkanál" },
-        { "id": "olaj", "menny": "2 evőkanál" },
-        { "id": "so", "menny": "ízlés szerint" }
+        { "id": "hagyma", "menny": "1 fej", "g": 120 },
+        { "id": "kapor", "menny": "1 csokor", "g": 10 },
+        { "id": "tejfol", "menny": "2 dl", "g": 200 },
+        { "id": "liszt", "menny": "2 evőkanál", "g": 20 },
+        { "id": "olaj", "menny": "2 evőkanál", "g": 20 },
+        { "id": "so", "menny": "ízlés szerint", "g": 0 }
       ],
-      "lepesek": ["A gyalult tököt megsózod, és 10 percig állni hagyod, majd kinyomkodod a levét.", "A hagymát apróra vágod, és az olajon üvegesre párolod.", "Hozzáadod a tököt, kevés vizet öntesz alá, és fedő alatt 10 percig párolod.", "A tejfölt simára kevered a liszttel és az apróra vágott kaporral.", "Hozzáöntöd a tökhöz, és kevergetve még 5 percig forralod."]
+      "lepesek": ["A gyalult tököt megsózod, és 10 percig állni hagyod, majd kinyomkodod a levét.", "A hagymát apróra vágod, és az olajon üvegesre párolod.", "Hozzáadod a tököt, kevés vizet öntesz alá, és fedő alatt 10 percig párolod.", "A tejfölt simára kevered a liszttel és az apróra vágott kaporral.", "Hozzáöntöd a tökhöz, és kevergetve még 5 percig forralod."],
+      "adagSzam": 4
     },
     {
       "id": "gombapaprikas",
@@ -327,15 +413,16 @@
       "hozzavalok": [
         {
           "id": "gomba",
-          "menny": "50 dkg"
+          "menny": "50 dkg",
+          "g": 500
         },
-        { "id": "hagyma", "menny": "1 fej" },
-        { "id": "pirospaprika", "menny": "1 evőkanál" },
-        { "id": "tejfol", "menny": "2 dl" },
-        { "id": "liszt", "menny": "1 evőkanál" },
-        { "id": "olaj", "menny": "3 evőkanál" },
-        { "id": "so", "menny": "ízlés szerint" },
-        { "id": "bors", "menny": "egy csipet" }
+        { "id": "hagyma", "menny": "1 fej", "g": 120 },
+        { "id": "pirospaprika", "menny": "1 evőkanál", "g": 8 },
+        { "id": "tejfol", "menny": "2 dl", "g": 200 },
+        { "id": "liszt", "menny": "1 evőkanál", "g": 10 },
+        { "id": "olaj", "menny": "3 evőkanál", "g": 30 },
+        { "id": "so", "menny": "ízlés szerint", "g": 0 },
+        { "id": "bors", "menny": "egy csipet", "g": 0 }
       ],
       "lepesek": [
         "A hagymát apróra vágod, és az olajon üvegesre párolod.",
@@ -343,7 +430,9 @@
         "Hozzáadod a felszeletelt gombát, megsózod, megborsozod, és kb. 15 percig párolod.",
         "A tejfölt simára kevered a liszttel, és hozzáöntöd.",
         "Kevergetve még 5 percig forralod. Nokedlivel tálalod."
-      ]
+      ],
+      "megj": "A nokedli nincs benne.",
+      "adagSzam": 4
     },
     {
       "id": "rantott-csirkemell",
@@ -354,15 +443,19 @@
       "hozzavalok": [
         {
           "id": "csirke",
-          "menny": "60 dkg (mell)"
+          "menny": "60 dkg (mell)",
+          "g": 600,
+          "t": "csirkemell"
         },
-        { "id": "tojas", "menny": "2 db" },
-        { "id": "liszt", "menny": "10 dkg" },
-        { "id": "zsemlemorzsa", "menny": "15 dkg" },
-        { "id": "olaj", "menny": "a sütéshez" },
-        { "id": "so", "menny": "ízlés szerint" }
+        { "id": "tojas", "menny": "2 db", "g": 110 },
+        { "id": "liszt", "menny": "10 dkg", "g": 40 },
+        { "id": "zsemlemorzsa", "menny": "15 dkg", "g": 80 },
+        { "id": "olaj", "menny": "a sütéshez", "g": 60 },
+        { "id": "so", "menny": "ízlés szerint", "g": 0 }
       ],
-      "lepesek": ["A csirkemellet szeletekre vágod, kicsit kiklopfolod, és megsózod.", "Három tányért készítesz: lisztet, felvert tojást és zsemlemorzsát.", "A szeleteket sorban megforgatod lisztben, tojásban, végül zsemlemorzsában.", "Egy serpenyőben bő olajat forrósítasz, és a szeleteket mindkét oldalukon aranybarnára sütöd.", "Papírtörlőre szeded, hogy lecsöpögjön az olaj."]
+      "lepesek": ["A csirkemellet szeletekre vágod, kicsit kiklopfolod, és megsózod.", "Három tányért készítesz: lisztet, felvert tojást és zsemlemorzsát.", "A szeleteket sorban megforgatod lisztben, tojásban, végül zsemlemorzsában.", "Egy serpenyőben bő olajat forrósítasz, és a szeleteket mindkét oldalukon aranybarnára sütöd.", "Papírtörlőre szeded, hogy lecsöpögjön az olaj."],
+      "megj": "A köret nincs benne. A panírból és az olajból csak a ráragadó részt számolja.",
+      "adagSzam": 4
     },
     {
       "id": "bableves",
@@ -373,18 +466,19 @@
       "hozzavalok": [
         {
           "id": "bab",
-          "menny": "30 dkg"
+          "menny": "30 dkg",
+          "g": 300
         },
-        { "id": "kolbasz", "menny": "20 dkg", "opcionalis": true },
-        { "id": "repa", "menny": "2 db" },
-        { "id": "petrezselyem", "menny": "1 db" },
-        { "id": "hagyma", "menny": "1 fej" },
-        { "id": "fokhagyma", "menny": "2 gerezd", "opcionalis": true },
-        { "id": "pirospaprika", "menny": "1 teáskanál" },
-        { "id": "tejfol", "menny": "2 dl", "opcionalis": true },
-        { "id": "liszt", "menny": "2 evőkanál" },
-        { "id": "olaj", "menny": "2 evőkanál" },
-        { "id": "so", "menny": "ízlés szerint" }
+        { "id": "kolbasz", "menny": "20 dkg", "opcionalis": true, "g": 200 },
+        { "id": "repa", "menny": "2 db", "g": 160 },
+        { "id": "petrezselyem", "menny": "1 db", "g": 80 },
+        { "id": "hagyma", "menny": "1 fej", "g": 120 },
+        { "id": "fokhagyma", "menny": "2 gerezd", "opcionalis": true, "g": 10 },
+        { "id": "pirospaprika", "menny": "1 teáskanál", "g": 3 },
+        { "id": "tejfol", "menny": "2 dl", "opcionalis": true, "g": 200 },
+        { "id": "liszt", "menny": "2 evőkanál", "g": 20 },
+        { "id": "olaj", "menny": "2 evőkanál", "g": 20 },
+        { "id": "so", "menny": "ízlés szerint", "g": 0 }
       ],
       "lepesek": [
         "A babot előző este beáztatod hideg vízbe.",
@@ -393,7 +487,8 @@
         "Rántást készítesz: az olajon a lisztet és az apróra vágott hagymát megpirítod, lehúzod a tűzről, és belekevered a pirospaprikát és a fokhagymát.",
         "Egy kis hideg vízzel simára kevered, és a leveshez adod. Megsózod, és még 10 percig forralod.",
         "Tálaláskor tejfölt adsz hozzá."
-      ]
+      ],
+      "adagSzam": 6
     },
     {
       "id": "krumplipure",
@@ -404,13 +499,15 @@
       "hozzavalok": [
         {
           "id": "krumpli",
-          "menny": "1 kg"
+          "menny": "1 kg",
+          "g": 1000
         },
-        { "id": "tej", "menny": "2 dl" },
-        { "id": "vaj", "menny": "5 dkg" },
-        { "id": "so", "menny": "ízlés szerint" }
+        { "id": "tej", "menny": "2 dl", "g": 206 },
+        { "id": "vaj", "menny": "5 dkg", "g": 50 },
+        { "id": "so", "menny": "ízlés szerint", "g": 0 }
       ],
-      "lepesek": ["A krumplit meghámozod, felkockázod, és sós vízben puhára főzöd.", "Leszűröd, és krumplinyomóval vagy villával összetöröd.", "A tejet a vajjal felmelegíted, és a krumplihoz kevered.", "Simára kevered, és ízlés szerint sózod."]
+      "lepesek": ["A krumplit meghámozod, felkockázod, és sós vízben puhára főzöd.", "Leszűröd, és krumplinyomóval vagy villával összetöröd.", "A tejet a vajjal felmelegíted, és a krumplihoz kevered.", "Simára kevered, és ízlés szerint sózod."],
+      "adagSzam": 4
     },
     {
       "id": "rizibizi",
@@ -421,19 +518,21 @@
       "hozzavalok": [
         {
           "id": "rizs",
-          "menny": "25 dkg"
+          "menny": "25 dkg",
+          "g": 250
         },
-        { "id": "borso", "menny": "15 dkg" },
-        { "id": "vaj", "menny": "2 dkg" },
-        { "id": "viz", "menny": "5 dl" },
-        { "id": "so", "menny": "1 teáskanál" }
+        { "id": "borso", "menny": "15 dkg", "g": 150 },
+        { "id": "vaj", "menny": "2 dkg", "g": 20 },
+        { "id": "viz", "menny": "5 dl", "g": 0 },
+        { "id": "so", "menny": "1 teáskanál", "g": 0 }
       ],
       "lepesek": [
         "A vajat felolvasztod, és a rizst 1-2 percig pirítod rajta.",
         "Hozzáadod a borsót, felöntöd a vízzel, és megsózod.",
         "Felforralod, majd lefedve, a leggyengébb lángon kb. 18 percig főzöd. Közben nem kevered.",
         "Lehúzod a tűzről, és 5 percig fedő alatt pihenteted."
-      ]
+      ],
+      "adagSzam": 4
     },
     {
       "id": "lencsefozelek",
@@ -444,13 +543,14 @@
       "hozzavalok": [
         {
           "id": "lencse",
-          "menny": "30 dkg"
+          "menny": "30 dkg",
+          "g": 300
         },
-        { "id": "hagyma", "menny": "1 fej" },
-        { "id": "liszt", "menny": "2 evőkanál" },
-        { "id": "olaj", "menny": "2 evőkanál" },
-        { "id": "kolbasz", "menny": "feltétnek", "opcionalis": true },
-        { "id": "so", "menny": "ízlés szerint" }
+        { "id": "hagyma", "menny": "1 fej", "g": 120 },
+        { "id": "liszt", "menny": "2 evőkanál", "g": 20 },
+        { "id": "olaj", "menny": "2 evőkanál", "g": 20 },
+        { "id": "kolbasz", "menny": "feltétnek", "opcionalis": true, "g": 150 },
+        { "id": "so", "menny": "ízlés szerint", "g": 0 }
       ],
       "lepesek": [
         "A lencsét átválogatod, megmosod, és bő vízben kb. 40 percig puhára főzöd.",
@@ -458,7 +558,8 @@
         "Egy kis hideg vízzel simára kevered, és a lencséhez adod.",
         "Megsózod, és kevergetve még 10 percig forralod.",
         "Ha van kolbász, megsütve a tetejére teszed."
-      ]
+      ],
+      "adagSzam": 4
     },
     {
       "id": "bolognai",
@@ -469,18 +570,663 @@
       "hozzavalok": [
         {
           "id": "teszta",
-          "menny": "50 dkg (spagetti)"
+          "menny": "50 dkg (spagetti)",
+          "g": 500
         },
-        { "id": "daralt", "menny": "50 dkg" },
-        { "id": "hagyma", "menny": "1 fej" },
-        { "id": "fokhagyma", "menny": "2 gerezd" },
-        { "id": "paradicsomszosz", "menny": "5 dl" },
-        { "id": "sajt", "menny": "a tetejére", "opcionalis": true },
-        { "id": "olaj", "menny": "2 evőkanál" },
-        { "id": "so", "menny": "ízlés szerint" },
-        { "id": "bors", "menny": "egy csipet" }
+        { "id": "daralt", "menny": "50 dkg", "g": 500 },
+        { "id": "hagyma", "menny": "1 fej", "g": 120 },
+        { "id": "fokhagyma", "menny": "2 gerezd", "g": 10 },
+        { "id": "paradicsomszosz", "menny": "5 dl", "g": 500 },
+        { "id": "sajt", "menny": "a tetejére", "opcionalis": true, "g": 60 },
+        { "id": "olaj", "menny": "2 evőkanál", "g": 20 },
+        { "id": "so", "menny": "ízlés szerint", "g": 0 },
+        { "id": "bors", "menny": "egy csipet", "g": 0 }
       ],
-      "lepesek": ["A hagymát és a fokhagymát apróra vágod, és az olajon megpárolod.", "Hozzáadod a darált húst, és kevergetve addig pirítod, amíg kifehéredik.", "Felöntöd a paradicsomszósszal, megsózod, megborsozod, és 20 percig főzöd.", "Közben a tésztát bő, sós vízben kifőzöd, és leszűröd.", "A tésztára szeded a szószt, és ha van, reszelt sajtot szórsz a tetejére."]
+      "lepesek": ["A hagymát és a fokhagymát apróra vágod, és az olajon megpárolod.", "Hozzáadod a darált húst, és kevergetve addig pirítod, amíg kifehéredik.", "Felöntöd a paradicsomszósszal, megsózod, megborsozod, és 20 percig főzöd.", "Közben a tésztát bő, sós vízben kifőzöd, és leszűröd.", "A tésztára szeded a szószt, és ha van, reszelt sajtot szórsz a tetejére."],
+      "adagSzam": 4
+    },
+    {
+      "id": "rantott-hal",
+      "nev": "Rántott hal",
+      "ikon": "🐟",
+      "ido": "40 perc",
+      "adag": "4 adag",
+      "adagSzam": 4,
+      "hozzavalok": [
+        {
+          "id": "hal",
+          "menny": "60 dkg (filé, pl. hekk vagy tőkehal)",
+          "g": 600
+        },
+        { "id": "tojas", "menny": "2 db", "g": 110 },
+        { "id": "liszt", "menny": "10 dkg", "g": 40 },
+        { "id": "zsemlemorzsa", "menny": "15 dkg", "g": 80 },
+        { "id": "olaj", "menny": "a sütéshez", "g": 60 },
+        { "id": "so", "menny": "ízlés szerint", "g": 0 }
+      ],
+      "lepesek": [
+        "Ha a hal fagyasztott, hagyod kiolvadni, majd papírtörlővel szárazra törlöd.",
+        "A halszeleteket megsózod.",
+        "Három tányért készítesz: lisztet, felvert tojást és zsemlemorzsát.",
+        "A szeleteket sorban megforgatod lisztben, tojásban, végül zsemlemorzsában.",
+        "Bő, forró olajban mindkét oldalukat aranybarnára sütöd, oldalanként kb. 3-4 percig.",
+        "Papírtörlőre szeded, hogy lecsöpögjön az olaj."
+      ],
+      "megj": "A köret nincs benne. A panírból és az olajból csak a ráragadó részt számolja."
+    },
+    {
+      "id": "tonhalas-teszta",
+      "nev": "Tonhalas tészta",
+      "ikon": "🐠",
+      "ido": "25 perc",
+      "adag": "4 adag",
+      "adagSzam": 4,
+      "hozzavalok": [
+        {
+          "id": "teszta",
+          "menny": "40 dkg",
+          "g": 400
+        },
+        { "id": "tonhal", "menny": "2 konzerv (lecsöpögtetve kb. 24 dkg)", "g": 240 },
+        { "id": "paradicsomszosz", "menny": "5 dl", "g": 500 },
+        { "id": "hagyma", "menny": "1 fej", "g": 120 },
+        { "id": "fokhagyma", "menny": "2 gerezd", "g": 10 },
+        { "id": "sajt", "menny": "a tetejére", "g": 60, "opcionalis": true },
+        { "id": "olaj", "menny": "2 evőkanál", "g": 20 },
+        { "id": "so", "menny": "ízlés szerint", "g": 0 },
+        { "id": "bors", "menny": "egy csipet", "g": 0 }
+      ],
+      "lepesek": ["A tésztát bő, sós vízben kifőzöd, és leszűröd.", "Közben a hagymát és a fokhagymát apróra vágod, és az olajon megpárolod.", "Hozzáöntöd a paradicsomszószt, megsózod, megborsozod, és 10 percig főzöd.", "Belekevered a lecsöpögtetett tonhalat, és még 2 percig melegíted.", "A tésztát összeforgatod a szósszal, és ha van, reszelt sajtot szórsz a tetejére."]
+    },
+    {
+      "id": "csirkemell-rizs-brokkoli",
+      "nev": "Csirkemell rizzsel és brokkolival",
+      "ikon": "🥦",
+      "ido": "35 perc",
+      "adag": "4 adag",
+      "adagSzam": 4,
+      "hozzavalok": [
+        {
+          "id": "csirke",
+          "menny": "60 dkg (mell)",
+          "g": 600,
+          "t": "csirkemell"
+        },
+        { "id": "rizs", "menny": "25 dkg", "g": 250 },
+        { "id": "brokkoli", "menny": "50 dkg", "g": 500 },
+        { "id": "fokhagyma", "menny": "2 gerezd", "g": 10, "opcionalis": true },
+        { "id": "olaj", "menny": "2 evőkanál", "g": 20 },
+        { "id": "so", "menny": "ízlés szerint", "g": 0 },
+        { "id": "bors", "menny": "egy csipet", "g": 0 }
+      ],
+      "lepesek": [
+        "A rizst kevés olajon átforgatod, felöntöd dupla annyi sós vízzel, és lefedve, gyenge lángon kb. 18 percig főzöd.",
+        "A brokkolit rózsákra szeded, és sós vízben vagy gőzön 5-6 perc alatt roppanósra főzöd.",
+        "A csirkemellet szeletekre vágod, megsózod, megborsozod.",
+        "Egy serpenyőben kevés olajat hevítesz, és a szeleteket oldalanként 4-5 percig sütöd, amíg át nem sülnek. Ha van fokhagyma, a végén hozzáadod.",
+        "A rizzsel és a brokkolival tálalod."
+      ]
+    },
+    {
+      "id": "rakott-karfiol",
+      "nev": "Rakott karfiol",
+      "ikon": "🌼",
+      "ido": "1 óra 15 perc",
+      "adag": "4 adag",
+      "adagSzam": 4,
+      "hozzavalok": [
+        {
+          "id": "karfiol",
+          "menny": "1 kg (1 nagy fej)",
+          "g": 1000
+        },
+        { "id": "daralt", "menny": "50 dkg", "g": 500 },
+        { "id": "rizs", "menny": "10 dkg", "g": 100 },
+        { "id": "hagyma", "menny": "1 fej", "g": 120 },
+        { "id": "tejfol", "menny": "4 dl", "g": 400 },
+        { "id": "tojas", "menny": "2 db", "g": 110 },
+        { "id": "sajt", "menny": "10 dkg", "g": 100 },
+        { "id": "pirospaprika", "menny": "1 teáskanál", "g": 5 },
+        { "id": "olaj", "menny": "2 evőkanál", "g": 20 },
+        { "id": "so", "menny": "ízlés szerint", "g": 0 },
+        { "id": "bors", "menny": "egy csipet", "g": 0 }
+      ],
+      "lepesek": [
+        "A karfiolt rózsákra szeded, és sós vízben 8-10 percig főzöd, majd leszűröd.",
+        "A rizst sós vízben félpuhára főzöd.",
+        "A hagymát apróra vágod, az olajon megpárolod, hozzáadod a darált húst, és kifehéredésig pirítod. Megsózod, megborsozod, és megszórod a pirospaprikával.",
+        "Belekevered a rizst.",
+        "A tejfölt elkevered a tojásokkal és egy csipet sóval.",
+        "Egy kiolajozott tűzálló tálba rétegezed: karfiol, hús, karfiol. Mindegyik rétegre kanalazol a tejfölös keverékből.",
+        "A tetejét megszórod reszelt sajttal, és 180 fokos sütőben kb. 35 percig sütöd."
+      ]
+    },
+    {
+      "id": "toltott-paprika",
+      "nev": "Töltött paprika",
+      "ikon": "🫑",
+      "ido": "1,5 óra",
+      "adag": "4 adag",
+      "adagSzam": 4,
+      "hozzavalok": [
+        {
+          "id": "paprika",
+          "menny": "8 db (töltenivaló)",
+          "g": 640
+        },
+        { "id": "daralt", "menny": "50 dkg", "g": 500 },
+        { "id": "rizs", "menny": "10 dkg", "g": 100 },
+        { "id": "hagyma", "menny": "1 fej", "g": 120 },
+        { "id": "tojas", "menny": "1 db", "g": 55 },
+        { "id": "paradicsomszosz", "menny": "1 liter", "g": 1000 },
+        { "id": "cukor", "menny": "3 evőkanál", "g": 36 },
+        { "id": "liszt", "menny": "2 evőkanál", "g": 20 },
+        { "id": "olaj", "menny": "2 evőkanál", "g": 20 },
+        { "id": "so", "menny": "ízlés szerint", "g": 0 },
+        { "id": "bors", "menny": "egy csipet", "g": 0 }
+      ],
+      "lepesek": [
+        "A paprikák tetejét kivágod, és kikaparod a magokat.",
+        "A rizst megmosod. A hagymát apróra vágod, és az olaj felén megpárolod.",
+        "A darált húst összekevered a nyers rizzsel, a párolt hagymával, a tojással, sóval és borssal.",
+        "A tölteléket lazán a paprikákba töltöd, mert a rizs főzés közben megdagad. A maradékból gombócokat formázol.",
+        "Egy nagy fazékban a paradicsomszószt felhígítod 5 dl vízzel, megsózod, és hozzáadod a cukrot.",
+        "Belerakod a paprikákat és a gombócokat, és lassú tűzön, lefedve kb. 1 óráig főzöd.",
+        "A lisztet a maradék olajon világosra pirítod, kevés hideg vízzel simára kevered, és besűríted vele a szószt. Még 5 percig forralod."
+      ],
+      "megj": "A főtt krumpli nincs benne."
+    },
+    {
+      "id": "toltott-kaposzta",
+      "nev": "Töltött káposzta",
+      "ikon": "🥬",
+      "ido": "2,5 óra",
+      "adag": "6 adag",
+      "adagSzam": 6,
+      "hozzavalok": [
+        {
+          "id": "savanyukaposzta",
+          "menny": "1 kg + 12 savanyú káposztalevél",
+          "g": 1000
+        },
+        { "id": "daralt", "menny": "60 dkg", "g": 600 },
+        { "id": "rizs", "menny": "12 dkg", "g": 120 },
+        { "id": "hagyma", "menny": "1 fej", "g": 120 },
+        { "id": "tojas", "menny": "1 db", "g": 55 },
+        { "id": "kolbasz", "menny": "20 dkg", "g": 200, "opcionalis": true },
+        { "id": "tejfol", "menny": "tálaláshoz, 2 dl", "g": 200, "opcionalis": true },
+        { "id": "pirospaprika", "menny": "1 evőkanál", "g": 8 },
+        { "id": "olaj", "menny": "2 evőkanál", "g": 20 },
+        { "id": "so", "menny": "ízlés szerint", "g": 0 },
+        { "id": "bors", "menny": "egy csipet", "g": 0 }
+      ],
+      "lepesek": [
+        "Ha a káposzta túl savanyú, egyszer átmosod hideg vízzel, és kinyomkodod.",
+        "A hagymát apróra vágod, az olajon megpárolod, lehúzod a tűzről, és belekevered a pirospaprikát.",
+        "A darált húst összekevered a nyers rizzsel, a hagyma felével, a tojással, sóval és borssal.",
+        "A káposztalevelek vastag erét levágod, mindegyikre teszel egy kanál tölteléket, és szorosan feltekered, a végeit beledugva.",
+        "Egy nagy fazék aljára teszed a savanyú káposzta felét a maradék hagymával, rá a töltelékeket és a kolbászt, a tetejére a maradék káposztát.",
+        "Felöntöd annyi vízzel, hogy ellepje, és lefedve, lassú tűzön kb. 2 óráig főzöd.",
+        "Tejföllel tálalod."
+      ]
+    },
+    {
+      "id": "szekelykaposzta",
+      "nev": "Székelykáposzta",
+      "ikon": "🥘",
+      "ido": "1,5 óra",
+      "adag": "4 adag",
+      "adagSzam": 4,
+      "hozzavalok": [
+        {
+          "id": "sertes",
+          "menny": "60 dkg (lapocka)",
+          "g": 600
+        },
+        { "id": "savanyukaposzta", "menny": "80 dkg", "g": 800 },
+        { "id": "hagyma", "menny": "2 fej", "g": 240 },
+        { "id": "fokhagyma", "menny": "2 gerezd", "g": 10, "opcionalis": true },
+        { "id": "pirospaprika", "menny": "1 evőkanál", "g": 8 },
+        { "id": "tejfol", "menny": "3 dl", "g": 300 },
+        { "id": "liszt", "menny": "2 evőkanál", "g": 20 },
+        { "id": "olaj", "menny": "3 evőkanál", "g": 30 },
+        { "id": "so", "menny": "ízlés szerint", "g": 0 },
+        { "id": "bors", "menny": "egy csipet", "g": 0 }
+      ],
+      "lepesek": [
+        "A húst kockákra vágod.",
+        "A hagymát apróra vágod, az olajon üvegesre párolod, lehúzod a tűzről, és belekevered a pirospaprikát.",
+        "Hozzáadod a húst és a fokhagymát, megsózod, megborsozod, és kevés vízzel fedő alatt kb. 40 percig párolod.",
+        "Hozzáadod a kinyomkodott savanyú káposztát, felöntöd annyi vízzel, hogy ellepje, és még kb. 40 percig főzöd, amíg a hús megpuhul.",
+        "A tejfölt simára kevered a liszttel, hozzáöntöd, és még 5 percig forralod."
+      ]
+    },
+    {
+      "id": "kaposztas-teszta",
+      "nev": "Káposztás tészta",
+      "ikon": "🥬",
+      "ido": "45 perc",
+      "adag": "4 adag",
+      "adagSzam": 4,
+      "hozzavalok": [
+        {
+          "id": "kaposzta",
+          "menny": "1 kg (1 kisebb fej)",
+          "g": 1000
+        },
+        { "id": "teszta", "menny": "40 dkg (kockatészta)", "g": 400 },
+        { "id": "cukor", "menny": "1 evőkanál", "g": 12, "opcionalis": true },
+        { "id": "olaj", "menny": "4 evőkanál", "g": 40 },
+        { "id": "so", "menny": "ízlés szerint", "g": 0 },
+        { "id": "bors", "menny": "bőven", "g": 0 }
+      ],
+      "lepesek": [
+        "A káposztát lereszeled vagy apróra vágod, megsózod, és 15 percig állni hagyod, majd kinyomkodod a levét.",
+        "Ha szereted, a cukrot az olajon világosbarnára pirítod.",
+        "Hozzáadod a káposztát, és közepes lángon, gyakran kevergetve kb. 25 percig pirítod, amíg megbarnul és megpuhul.",
+        "Közben a tésztát sós vízben kifőzöd, és leszűröd.",
+        "A tésztát összeforgatod a káposztával, és bőven megborsozod."
+      ]
+    },
+    {
+      "id": "zoldbabfozelek",
+      "nev": "Zöldbabfőzelék",
+      "ikon": "🥗",
+      "ido": "30 perc",
+      "adag": "4 adag",
+      "adagSzam": 4,
+      "hozzavalok": [
+        {
+          "id": "zoldbab",
+          "menny": "80 dkg",
+          "g": 800
+        },
+        { "id": "tejfol", "menny": "2 dl", "g": 200 },
+        { "id": "liszt", "menny": "3 evőkanál", "g": 30 },
+        { "id": "olaj", "menny": "2 evőkanál", "g": 20 },
+        { "id": "fokhagyma", "menny": "1 gerezd", "g": 5, "opcionalis": true },
+        { "id": "kapor", "menny": "egy kevés", "g": 5, "opcionalis": true },
+        { "id": "so", "menny": "ízlés szerint", "g": 0 }
+      ],
+      "lepesek": [
+        "A zöldbabot megtisztítod, 2-3 cm-es darabokra vágod, és sós vízben kb. 15 percig főzöd.",
+        "A lisztet az olajon világosra pirítod, majd kevés hideg vízzel csomómentesre kevered.",
+        "A rántást a babhoz öntöd, és kevergetve 5 percig forralod.",
+        "Belekevered a tejfölt, és ha van, a zúzott fokhagymát és az apróra vágott kaprot.",
+        "Még egyszer felforralod, és ízlés szerint sózod."
+      ]
+    },
+    {
+      "id": "husleves",
+      "nev": "Húsleves",
+      "ikon": "🍲",
+      "ido": "2,5 óra",
+      "adag": "6 adag",
+      "adagSzam": 6,
+      "hozzavalok": [
+        {
+          "id": "csirke",
+          "menny": "1 kg csontos (pl. comb, far)",
+          "g": 700
+        },
+        { "id": "repa", "menny": "3 db", "g": 300 },
+        { "id": "petrezselyem", "menny": "2 db", "g": 150 },
+        { "id": "hagyma", "menny": "1 fej", "g": 120 },
+        { "id": "teszta", "menny": "15 dkg (cérnametélt)", "g": 150 },
+        { "id": "so", "menny": "ízlés szerint", "g": 0 },
+        { "id": "bors", "menny": "pár szem egész bors", "g": 0 }
+      ],
+      "lepesek": [
+        "A húst megmosod, egy nagy fazékba teszed, és felöntöd kb. 3 liter hideg vízzel.",
+        "Lassan felforralod, és a tetején összegyűlő habot leszeded.",
+        "Hozzáadod a megtisztított répát, petrezselymet, az egész hagymát, a borsot és a sót.",
+        "Lassú tűzön, éppen csak gyöngyözve kb. 2 óráig főzöd.",
+        "A cérnametéltet külön, sós vízben kifőzöd.",
+        "A levest leszűröd, a húst és a zöldséget visszateszed, és a tésztával tálalod."
+      ]
+    },
+    {
+      "id": "krumplifozelek",
+      "nev": "Krumplifőzelék",
+      "ikon": "🥔",
+      "ido": "35 perc",
+      "adag": "4 adag",
+      "adagSzam": 4,
+      "hozzavalok": [
+        {
+          "id": "krumpli",
+          "menny": "1 kg",
+          "g": 1000
+        },
+        { "id": "hagyma", "menny": "1 fej", "g": 120 },
+        { "id": "tejfol", "menny": "2 dl", "g": 200 },
+        { "id": "liszt", "menny": "2 evőkanál", "g": 20 },
+        { "id": "pirospaprika", "menny": "1 teáskanál", "g": 5 },
+        { "id": "olaj", "menny": "2 evőkanál", "g": 20 },
+        { "id": "so", "menny": "ízlés szerint", "g": 0 }
+      ],
+      "lepesek": ["A krumplit meghámozod, felkockázod, és annyi sós vízben, hogy ellepje, puhára főzöd.", "A hagymát apróra vágod, és az olajon üvegesre párolod.", "Hozzáadod a lisztet, világosra pirítod, lehúzod a tűzről, és belekevered a pirospaprikát.", "Kevés hideg vízzel simára kevered, és a krumplihoz öntöd.", "Belekevered a tejfölt, és kevergetve még 5 percig forralod."]
+    },
+    {
+      "id": "borsofozelek",
+      "nev": "Borsófőzelék",
+      "ikon": "🫛",
+      "ido": "25 perc",
+      "adag": "4 adag",
+      "adagSzam": 4,
+      "hozzavalok": [
+        {
+          "id": "borso",
+          "menny": "60 dkg (fagyasztott is jó)",
+          "g": 600
+        },
+        { "id": "vaj", "menny": "2 dkg", "g": 20 },
+        { "id": "liszt", "menny": "3 evőkanál", "g": 30 },
+        { "id": "tej", "menny": "3 dl", "g": 309 },
+        { "id": "cukor", "menny": "1 teáskanál", "g": 5 },
+        { "id": "so", "menny": "ízlés szerint", "g": 0 }
+      ],
+      "lepesek": [
+        "A borsót kevés sós vízben kb. 10 percig főzöd.",
+        "A vajat felolvasztod, és a lisztet világosra pirítod rajta.",
+        "Lehúzod a tűzről, és apránként, folyamatosan kevergetve hozzáöntöd a hideg tejet, hogy csomómentes legyen.",
+        "A borsóhoz öntöd, hozzáadod a cukrot, és kevergetve 5 percig forralod, amíg besűrűsödik."
+      ]
+    },
+    {
+      "id": "fasirt",
+      "nev": "Fasírt",
+      "ikon": "🍖",
+      "ido": "45 perc",
+      "adag": "4 adag",
+      "adagSzam": 4,
+      "hozzavalok": [
+        {
+          "id": "daralt",
+          "menny": "60 dkg",
+          "g": 600
+        },
+        { "id": "tojas", "menny": "1 db", "g": 55 },
+        { "id": "kenyer", "menny": "2 szelet", "g": 80 },
+        { "id": "hagyma", "menny": "1 fej", "g": 120 },
+        { "id": "fokhagyma", "menny": "2 gerezd", "g": 10 },
+        { "id": "zsemlemorzsa", "menny": "a forgatáshoz", "g": 50 },
+        { "id": "olaj", "menny": "a sütéshez", "g": 60 },
+        { "id": "so", "menny": "ízlés szerint", "g": 0 },
+        { "id": "bors", "menny": "egy csipet", "g": 0 }
+      ],
+      "lepesek": ["A kenyeret vízbe áztatod, majd kinyomkodod.", "A hagymát és a fokhagymát nagyon apróra vágod.", "A darált húst összegyúrod a kenyérrel, a tojással, a hagymával, a fokhagymával, sóval és borssal.", "Vizes kézzel 12 lapos gombócot formázol, és zsemlemorzsába forgatod őket.", "Forró olajban, közepes lángon mindkét oldalukat 5-6 percig sütöd, amíg át nem sülnek.", "Papírtörlőre szeded."],
+      "megj": "A köret nincs benne."
+    },
+    {
+      "id": "tejfolos-gombas-csirkemell",
+      "nev": "Tejfölös-gombás csirkemell",
+      "ikon": "🍄",
+      "ido": "35 perc",
+      "adag": "4 adag",
+      "adagSzam": 4,
+      "hozzavalok": [
+        {
+          "id": "csirke",
+          "menny": "60 dkg (mell)",
+          "g": 600,
+          "t": "csirkemell"
+        },
+        { "id": "gomba", "menny": "30 dkg", "g": 300 },
+        { "id": "hagyma", "menny": "1 fej", "g": 120 },
+        { "id": "tejfol", "menny": "2 dl", "g": 200 },
+        { "id": "liszt", "menny": "1 evőkanál", "g": 10 },
+        { "id": "olaj", "menny": "2 evőkanál", "g": 20 },
+        { "id": "so", "menny": "ízlés szerint", "g": 0 },
+        { "id": "bors", "menny": "egy csipet", "g": 0 }
+      ],
+      "lepesek": [
+        "A csirkemellet csíkokra vágod, megsózod, megborsozod.",
+        "Az olajon a húst kevergetve 5-6 percig sütöd, majd kiszeded.",
+        "Ugyanabban a serpenyőben megpárolod az apróra vágott hagymát, majd hozzáadod a felszeletelt gombát, és 8 percig párolod.",
+        "Visszateszed a húst. A tejfölt simára kevered a liszttel, és hozzáöntöd.",
+        "Kevergetve 3-4 percig főzöd, amíg besűrűsödik."
+      ],
+      "megj": "A köret nincs benne."
+    },
+    {
+      "id": "sult-csirkecomb",
+      "nev": "Sült csirkecomb krumplival",
+      "ikon": "🍗",
+      "ido": "1 óra 15 perc",
+      "adag": "4 adag",
+      "adagSzam": 4,
+      "hozzavalok": [
+        {
+          "id": "csirke",
+          "menny": "4 egész comb (kb. 1,2 kg)",
+          "g": 840,
+          "t": "csirkecomb"
+        },
+        { "id": "krumpli", "menny": "1 kg", "g": 1000 },
+        { "id": "fokhagyma", "menny": "3 gerezd", "g": 15 },
+        { "id": "pirospaprika", "menny": "1 evőkanál", "g": 8 },
+        { "id": "olaj", "menny": "3 evőkanál", "g": 30 },
+        { "id": "so", "menny": "ízlés szerint", "g": 0 },
+        { "id": "bors", "menny": "egy csipet", "g": 0 }
+      ],
+      "lepesek": [
+        "A sütőt 200 fokra előmelegíted.",
+        "A krumplit meghámozod, cikkekre vágod, és egy tepsibe teszed.",
+        "Az olajat elkevered a zúzott fokhagymával, a pirospaprikával, sóval és borssal.",
+        "A combokat és a krumplit bekened a fűszeres olajjal, a combokat a krumpli tetejére fekteted.",
+        "Kb. 1 óráig sütöd, amíg a comb bőre ropogós, a krumpli puha nem lesz. Félidőben a krumplit átforgatod."
+      ]
+    },
+    {
+      "id": "tojasos-nokedli",
+      "nev": "Tojásos nokedli",
+      "ikon": "🍳",
+      "ido": "25 perc",
+      "adag": "4 adag",
+      "adagSzam": 4,
+      "hozzavalok": [
+        {
+          "id": "liszt",
+          "menny": "30 dkg",
+          "g": 300
+        },
+        { "id": "tojas", "menny": "2 db (a tésztába)", "g": 110 },
+        { "id": "tojas", "menny": "6 db (a tetejére)", "g": 330 },
+        { "id": "olaj", "menny": "2 evőkanál", "g": 20 },
+        { "id": "viz", "menny": "kb. 2 dl", "g": 0 },
+        { "id": "so", "menny": "ízlés szerint", "g": 0 }
+      ],
+      "lepesek": ["A lisztet, 2 tojást, egy csipet sót és a vizet sűrű tésztává kevered.", "Forrásban lévő sós vízbe szaggatod, és ha feljött, leszűröd.", "Egy nagy serpenyőben felforrósítod az olajat, és ráteszed a nokedlit.", "A 6 tojást megsózva felvered, ráöntöd a nokedlire, és kevergetve addig sütöd, amíg a tojás megszilárdul.", "Salátával vagy savanyúsággal tálalod."]
+    },
+    {
+      "id": "rizses-csirke",
+      "nev": "Rizses csirke zöldségekkel",
+      "ikon": "🍚",
+      "ido": "40 perc",
+      "adag": "4 adag",
+      "adagSzam": 4,
+      "hozzavalok": [
+        {
+          "id": "csirke",
+          "menny": "50 dkg (mell)",
+          "g": 500,
+          "t": "csirkemell"
+        },
+        { "id": "rizs", "menny": "30 dkg", "g": 300 },
+        { "id": "borso", "menny": "15 dkg", "g": 150 },
+        { "id": "repa", "menny": "2 db", "g": 150 },
+        { "id": "hagyma", "menny": "1 fej", "g": 120 },
+        { "id": "pirospaprika", "menny": "1 teáskanál", "g": 5, "opcionalis": true },
+        { "id": "olaj", "menny": "3 evőkanál", "g": 30 },
+        { "id": "viz", "menny": "6 dl", "g": 0 },
+        { "id": "so", "menny": "ízlés szerint", "g": 0 },
+        { "id": "bors", "menny": "egy csipet", "g": 0 }
+      ],
+      "lepesek": [
+        "A csirkemellet kockákra vágod, a hagymát apróra, a répát karikára.",
+        "Az olajon megpárolod a hagymát, hozzáadod a húst, és kifehéredésig pirítod.",
+        "Hozzáadod a répát és a rizst, és 1-2 percig együtt pirítod.",
+        "Felöntöd a vízzel, megsózod, megborsozod, és ha van, hozzáadod a pirospaprikát.",
+        "Lefedve, gyenge lángon kb. 15 percig főzöd, majd hozzáadod a borsót, és még 5 percig főzöd.",
+        "Lehúzod a tűzről, és 5 percig fedő alatt pihenteted."
+      ]
+    },
+    {
+      "id": "rakott-teszta",
+      "nev": "Rakott tészta darált hússal",
+      "ikon": "🍝",
+      "ido": "1 óra",
+      "adag": "4 adag",
+      "adagSzam": 4,
+      "hozzavalok": [
+        {
+          "id": "teszta",
+          "menny": "40 dkg (penne)",
+          "g": 400
+        },
+        { "id": "daralt", "menny": "50 dkg", "g": 500 },
+        { "id": "hagyma", "menny": "1 fej", "g": 120 },
+        { "id": "paradicsomszosz", "menny": "5 dl", "g": 500 },
+        { "id": "tejfol", "menny": "2 dl", "g": 200 },
+        { "id": "sajt", "menny": "15 dkg", "g": 150 },
+        { "id": "olaj", "menny": "2 evőkanál", "g": 20 },
+        { "id": "so", "menny": "ízlés szerint", "g": 0 },
+        { "id": "bors", "menny": "egy csipet", "g": 0 }
+      ],
+      "lepesek": ["A tésztát sós vízben félpuhára főzöd, és leszűröd.", "A hagymát az olajon megpárolod, hozzáadod a darált húst, és kifehéredésig pirítod.", "Hozzáöntöd a paradicsomszószt, megsózod, megborsozod, és 15 percig főzöd.", "A tésztát összekevered a szósszal, és egy tűzálló tálba teszed.", "A tetejét megkened tejföllel, megszórod reszelt sajttal, és 200 fokos sütőben 20-25 percig sütöd."]
+    },
+    {
+      "id": "paradicsomleves",
+      "nev": "Paradicsomleves",
+      "ikon": "🍅",
+      "ido": "30 perc",
+      "adag": "4 adag",
+      "adagSzam": 4,
+      "hozzavalok": [
+        {
+          "id": "paradicsomszosz",
+          "menny": "1 liter",
+          "g": 1000
+        },
+        { "id": "cukor", "menny": "3 evőkanál", "g": 40 },
+        { "id": "vaj", "menny": "2 dkg", "g": 20 },
+        { "id": "liszt", "menny": "2 evőkanál", "g": 20 },
+        { "id": "teszta", "menny": "8 dkg (betűtészta)", "g": 80, "opcionalis": true },
+        { "id": "viz", "menny": "5 dl", "g": 0 },
+        { "id": "so", "menny": "ízlés szerint", "g": 0 }
+      ],
+      "lepesek": [
+        "A paradicsomszószt a vízzel felforralod, megsózod, és hozzáadod a cukrot.",
+        "A vajat felolvasztod, és a lisztet világosra pirítod rajta.",
+        "Kevés hideg vízzel simára kevered, és a leveshez adod.",
+        "Kevergetve 5 percig forralod. Ízlés szerint még cukrozod vagy sózod.",
+        "Ha van, a betűtésztát külön kifőzöd, és a levesbe teszed."
+      ]
+    },
+    {
+      "id": "bundas-kenyer",
+      "nev": "Bundás kenyér",
+      "ikon": "🍞",
+      "ido": "15 perc",
+      "adag": "2 adag",
+      "adagSzam": 2,
+      "hozzavalok": [
+        {
+          "id": "kenyer",
+          "menny": "6 szelet",
+          "g": 240
+        },
+        { "id": "tojas", "menny": "3 db", "g": 165 },
+        { "id": "tej", "menny": "fél dl", "g": 50 },
+        { "id": "olaj", "menny": "a sütéshez", "g": 40 },
+        { "id": "so", "menny": "egy csipet", "g": 0 }
+      ],
+      "lepesek": ["A tojásokat a tejjel és egy csipet sóval egy mély tányérban felvered.", "Egy serpenyőben olajat forrósítasz.", "A kenyérszeleteket mindkét oldalukon megforgatod a tojásban.", "Közepes lángon mindkét oldalukat aranybarnára sütöd.", "Papírtörlőre szeded, és savanyúsággal vagy teával tálalod."],
+      "megj": "Az olajból csak a kenyérbe szívódó részt számolja."
+    },
+    {
+      "id": "karfiolleves",
+      "nev": "Karfiolleves",
+      "ikon": "🍲",
+      "ido": "30 perc",
+      "adag": "4 adag",
+      "adagSzam": 4,
+      "hozzavalok": [
+        {
+          "id": "karfiol",
+          "menny": "60 dkg",
+          "g": 600
+        },
+        { "id": "repa", "menny": "1 db", "g": 80 },
+        { "id": "tejfol", "menny": "2 dl", "g": 200 },
+        { "id": "liszt", "menny": "2 evőkanál", "g": 20 },
+        { "id": "olaj", "menny": "2 evőkanál", "g": 20 },
+        { "id": "petrezselyem", "menny": "egy kevés zöldje", "g": 5, "opcionalis": true },
+        { "id": "viz", "menny": "1,5 liter", "g": 0 },
+        { "id": "so", "menny": "ízlés szerint", "g": 0 },
+        { "id": "bors", "menny": "egy csipet", "g": 0 }
+      ],
+      "lepesek": [
+        "A karfiolt kis rózsákra szeded, a répát felkarikázod.",
+        "Felöntöd a vízzel, megsózod, és kb. 15 percig főzöd.",
+        "A tejfölt simára kevered a liszttel és egy kis forró lével.",
+        "A leveshez öntöd, és kevergetve 5 percig forralod.",
+        "Megborsozod, és ha van, apróra vágott petrezselyemzölddel tálalod."
+      ]
+    },
+    {
+      "id": "tonhalsalata",
+      "nev": "Tonhalsaláta",
+      "ikon": "🐠",
+      "ido": "20 perc",
+      "adag": "2 adag",
+      "adagSzam": 2,
+      "hozzavalok": [
+        {
+          "id": "tonhal",
+          "menny": "2 konzerv (lecsöpögtetve kb. 24 dkg)",
+          "g": 240
+        },
+        { "id": "tojas", "menny": "4 db", "g": 220 },
+        { "id": "kukorica", "menny": "1 kis konzerv (14 dkg)", "g": 140 },
+        { "id": "joghurt", "menny": "1,5 dl", "g": 150 },
+        { "id": "hagyma", "menny": "fél fej (lilahagyma)", "g": 60, "opcionalis": true },
+        { "id": "so", "menny": "ízlés szerint", "g": 0 },
+        { "id": "bors", "menny": "egy csipet", "g": 0 }
+      ],
+      "lepesek": ["A tojásokat 10 perc alatt keményre főzöd, kihűtöd, és felkockázod.", "A tonhalat és a kukoricát lecsöpögteted.", "Ha van hagyma, nagyon apróra vágod.", "Mindent összekeversz a joghurttal, sózod, borsozod.", "Kenyérrel vagy pirítóssal tálalod."],
+      "megj": "A kenyér nincs benne."
+    },
+    {
+      "id": "joghurtos-csirkemell",
+      "nev": "Joghurtos sült csirkemell",
+      "ikon": "🍗",
+      "ido": "40 perc (+ pácolás)",
+      "adag": "4 adag",
+      "adagSzam": 4,
+      "hozzavalok": [
+        {
+          "id": "csirke",
+          "menny": "60 dkg (mell)",
+          "g": 600,
+          "t": "csirkemell"
+        },
+        { "id": "joghurt", "menny": "3 dl", "g": 150 },
+        { "id": "fokhagyma", "menny": "2 gerezd", "g": 10 },
+        { "id": "pirospaprika", "menny": "1 teáskanál", "g": 5 },
+        { "id": "olaj", "menny": "1 evőkanál", "g": 15 },
+        { "id": "so", "menny": "ízlés szerint", "g": 0 },
+        { "id": "bors", "menny": "egy csipet", "g": 0 }
+      ],
+      "lepesek": [
+        "A joghurtot összekevered a zúzott fokhagymával, a pirospaprikával, sóval és borssal.",
+        "A csirkemellet beleforgatod, és legalább fél órára, de akár egy éjszakára a hűtőbe teszed.",
+        "A sütőt 200 fokra előmelegíted, és egy tepsit kikensz az olajjal.",
+        "A húst a tepsibe fekteted, és kb. 25 percig sütöd, amíg át nem sül.",
+        "Rizzsel vagy salátával tálalod."
+      ],
+      "megj": "A köret nincs benne. A pácból csak a húsra tapadó részt számolja."
     }
   ]
 }
