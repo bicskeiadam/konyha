@@ -104,15 +104,16 @@ function tapanyagOldal() {
   sorok.sort((a, b) => (m.tobbJobb ? b[m.kulcs] - a[m.kulcs] : a[m.kulcs] - b[m.kulcs]) || a.nev.localeCompare(b.nev, 'hu'));
   const max = Math.max(...sorok.map((s) => s[m.kulcs]), 1);
 
+  // "355 kcal" needs no word after it; grams do ("1 g szénhidrát").
+  const ertekSzoveg = (x, s) => (x.egyseg === 'kcal' ? `${szam(s[x.kulcs])} kcal` : `${szam(s[x.kulcs])} g ${x.nev.toLowerCase()}`);
   const lista = sorok.map((s) => {
-    const tobbi = MERTEKEK.filter((x) => x.kulcs !== m.kulcs)
-      .map((x) => `${szam(s[x.kulcs])} ${x.egyseg} ${x.nev.toLowerCase()}`).join(' · ');
+    const tobbi = MERTEKEK.filter((x) => x.kulcs !== m.kulcs).map((x) => `<span>${ertekSzoveg(x, s)}</span>`).join('');
     return `
       <li class="tap-elem">
         <span class="ikon" aria-hidden="true">${s.ikon}</span>
         <span class="tap-kozep">
           <span class="nev">${esc(s.nev)}</span>
-          <span class="tap-csik" aria-hidden="true"><span style="width:${Math.max(2, (s[m.kulcs] / max) * 100)}%"></span></span>
+          <span class="tap-csik" aria-hidden="true" style="width:${Math.max(2, (s[m.kulcs] / max) * 100)}%"></span>
           <span class="tap-tobbi">${tobbi}</span>
         </span>
         <span class="tap-fo">${szam(s[m.kulcs])} ${m.egyseg}<small>${m.nev.toLowerCase()}</small></span>
@@ -125,11 +126,13 @@ function tapanyagOldal() {
     <div class="szuro-sor">${MERTEKEK.map((x) =>
       `<button class="szuro" data-rendez="${x.kulcs}" aria-pressed="${x.kulcs === tapSzerint}">${esc(x.nev)}</button>`).join('')}</div>
     <p class="tipp">${m.tobbJobb ? 'Elöl az, amiben a legtöbb van.' : 'Elöl az, amiben a legkevesebb van.'}</p>
-    <div class="tap-fejlec">
-      <span class="tap-fejlec-nev">Hozzávaló</span>
-      <span class="tap-fejlec-ertek">100 grammban<small>nyersen</small></span>
-    </div>
-    <ul class="tap-lista">${lista}</ul>`;
+    <div class="tap-tabla">
+      <div class="tap-fejlec">
+        <span class="tap-fejlec-nev">Hozzávaló</span>
+        <span class="tap-fejlec-ertek">100 grammban<small>nyersen</small></span>
+      </div>
+      <ul class="tap-lista">${lista}</ul>
+    </div>`;
 }
 
 // An imported recipe with no recognised ingredient can't be judged, so it never counts as "can cook".
@@ -183,8 +186,13 @@ async function sajatBetolt() {
 
 /* ---------- Screens ---------- */
 
+// Phosphor icon from the offline sprite in icons/ikonok.svg.
+function ikon(nev) {
+  return `<svg class="i" aria-hidden="true"><use href="icons/ikonok.svg#${nev}"/></svg>`;
+}
+
 function vissza() {
-  return '<div class="fejlec"><button class="vissza" data-vissza><span>‹</span> Vissza</button></div>';
+  return `<div class="fejlec"><button class="vissza" data-vissza>${ikon('caret-left')} Vissza</button></div>`;
 }
 
 function kezdolap() {
@@ -196,7 +204,7 @@ function kezdolap() {
         <button class="csempe" data-hozzavalo="${h.id}" aria-pressed="${itthon.has(h.id)}">
           <span class="ikon" aria-hidden="true">${h.ikon}</span>
           <span>${esc(h.nev)}</span>
-          <span class="pipa" aria-hidden="true">✓</span>
+          <span class="pipa" aria-hidden="true">${ikon('check')}</span>
         </button>`).join('');
     return `<h2>${esc(kat.nev)}</h2><div class="racs">${csempek}</div>`;
   }).join('');
@@ -205,19 +213,22 @@ function kezdolap() {
     <h1>Mi van itthon?</h1>
     <p class="alcim">Koppints arra, ami van. Só, bors, olaj mindig van.</p>
     ${csoportok}
-    <button class="halk-gomb" data-ugras="#/tapanyag">Hozzávalók tápértéke</button>
-    ${itthon.size ? '<button class="halk-gomb" data-torles>Minden pipa törlése</button>' : ''}
+    <button class="halk-gomb" data-ugras="#/tapanyag">${ikon('chart-bar')} Hozzávalók tápértéke</button>
+    ${itthon.size ? `<button class="halk-gomb veszely" data-torles>${ikon('x')} Minden pipa törlése</button>` : ''}
     <div class="also-sav">
       <button class="nagy-gomb" data-ugras="#/receptek">
-        Mit főzzek?
-        <small>${tudod ? `${tudod} receptet meg tudsz főzni` : 'Nézd meg a recepteket'}</small>
+        ${ikon('cooking-pot')}
+        <span class="gomb-szoveg">
+          Mit főzzek?
+          <small>${tudod ? `${tudod} receptet meg tudsz főzni` : 'Nézd meg a recepteket'}</small>
+        </span>
       </button>
     </div>`;
 }
 
 function receptKep(r, osztaly) {
   if (r.sajat && kepUrlek[r.id]) return `<img class="${osztaly}" src="${kepUrlek[r.id]}" alt="">`;
-  return `<span class="ikon" aria-hidden="true">${r.ikon || '🍽️'}</span>`;
+  return r.ikon ? `<span class="ikon" aria-hidden="true">${r.ikon}</span>` : `<span class="ikon-hely">${ikon('fork-knife')}</span>`;
 }
 
 function receptKartya({ r, hiany }) {
@@ -234,7 +245,7 @@ function receptKartya({ r, hiany }) {
         ${tapSor}
         ${hianySor}
       </span>
-      <span class="nyil" aria-hidden="true">›</span>
+      <span class="nyil" aria-hidden="true">${ikon('caret-right')}</span>
     </button>`;
 }
 
@@ -261,7 +272,7 @@ function receptLista() {
       : `<button class="halk-gomb" data-tobbi>A többi recept (${tobbi.length})</button>`;
   }
 
-  html += '<button class="halk-gomb" data-ugras="#/uj">+ Új recept hozzáadása</button>';
+  html += `<button class="halk-gomb" data-ugras="#/uj">${ikon('plus')} Új recept hozzáadása</button>`;
   app.innerHTML = html;
 }
 
@@ -272,7 +283,7 @@ function hozzavaloSor(h) {
   if (info && !info.alap) {
     const van = itthon.has(h.id);
     osztaly = van ? 'van' : (h.opcionalis ? '' : 'nincs');
-    jel = van ? '✓' : (h.opcionalis ? '' : '✗');
+    jel = van ? ikon('check') : (h.opcionalis ? '' : ikon('x'));
   }
   const megj = h.opcionalis ? opcionalisCimke(h) : (osztaly === 'nincs' ? '<span class="megj">nincs itthon</span>' : '');
   // Built-in recipes: name + amount. Imported ones: the original line as written on the site.
@@ -324,8 +335,8 @@ function receptOldal(id) {
     : `<div class="recept-fej">${receptKep(r)}<div><h1>${esc(r.nev)}</h1>${info ? `<p class="meta">${info}</p>` : ''}</div></div>`;
 
   const lab = r.sajat ? `
-    <p class="forras">${r.forditva ? 'Magyarra fordítva. Eredeti recept' : 'Forrás'}: <a href="${esc(r.forras)}" target="_blank" rel="noopener">${esc(new URL(r.forras).hostname.replace(/^www\./, ''))}</a></p>
-    <button class="halk-gomb" data-recept-torles="${esc(r.id)}">Recept törlése</button>` : '';
+    <p class="forras">${ikon('link')}<span>${r.forditva ? 'Magyarra fordítva. Eredeti recept' : 'Forrás'}: <a href="${esc(r.forras)}" target="_blank" rel="noopener">${esc(new URL(r.forras).hostname.replace(/^www\./, ''))}</a></span></p>
+    <button class="halk-gomb veszely" data-recept-torles="${esc(r.id)}">${ikon('trash')} Recept törlése</button>` : '';
 
   app.innerHTML = `
     ${vissza()}
@@ -358,7 +369,7 @@ function hozzavaloValaszto(i, kivalasztott) {
     return `<optgroup label="${esc(kat.nev)}">${opciok}</optgroup>`;
   }).join('');
   return `<select class="valaszto" data-sor="${i}" aria-label="Melyik hozzávaló?">
-    <option value="">– nem számít –</option>${csoportok}</select>`;
+    <option value="">Nem számít</option>${csoportok}</select>`;
 }
 
 function ujRecept() {
@@ -377,7 +388,7 @@ function ujRecept() {
       return `
       <li class="import-sor">
         <span class="sor-szoveg">${esc(h.szoveg)}${ha}</span>
-        ${alap ? `<span class="megj">${esc(hozzavaloById[h.id].nev)} – mindig van itthon</span>` : hozzavaloValaszto(i, h.id)}
+        ${alap ? `<span class="megj">${esc(hozzavaloById[h.id].nev)}, mindig van itthon</span>` : hozzavaloValaszto(i, h.id)}
       </li>`;
     }).join('');
     const lepesek = recept.lepesek.map((l, i) => `
@@ -390,23 +401,23 @@ function ujRecept() {
       ${recept.forditva ? '<p class="tipp">Magyarra fordítva. Az eredeti receptet a recept alján lévő linken találod.</p>' : ''}
       ${recept.forditasSikertelen ? '<p class="uzenet">A fordítás most nem sikerült, ezért eredeti nyelven látod. Később újra próbálhatod.</p>' : ''}
       <h2>Hozzávalók</h2>
-      <p class="tipp">Ellenőrizd, melyik gombhoz tartozik. Ami „nem számít”, az is látszani fog a receptben.</p>
+      <p class="tipp">Ellenőrizd, melyik gombhoz tartozik. Ami „Nem számít”, az is látszani fog a receptben.</p>
       <ul class="hozzavalok">${sorok}</ul>
       <h2>Elkészítés</h2>
       ${recept.lepesek.length ? `<ol class="lepesek">${lepesek}</ol>` : '<p class="uzenet">Ennél a receptnél nem találtam lépéseket.</p>'}
-      <div class="also-sav"><button class="nagy-gomb" data-mentes>Hozzáadom a receptekhez</button></div>`;
+      <div class="also-sav"><button class="nagy-gomb" data-mentes>${ikon('plus')}<span class="gomb-szoveg">Hozzáadom a receptekhez</span></button></div>`;
   } else {
     html += `
       ${allapot === 'hiba' ? `<p class="uzenet hiba-uzenet">${esc(hiba)}</p>` : ''}
       <label class="cimke" for="link">A recept linkje</label>
       <input id="link" class="mezo" type="url" inputmode="url" placeholder="https://…" value="${esc(link)}">
-      <button class="nagy-gomb kozepen" data-betolt>Betöltés</button>
+      <button class="nagy-gomb kozepen" data-betolt>${ikon('download-simple')}<span class="gomb-szoveg">Betöltés</span></button>
       <p class="tipp tipp-kozep">Tipp: a recept oldalán nyomd meg a <b>Megosztás</b> gombot, és válaszd a <b>Konyha</b> alkalmazást.</p>
       <p class="tipp tipp-kozep">Működik: Nosalty, Mindmegette, Street Kitchen, Sóbors, Receptneked, Coolinarika, Recepti.com.<br>A szerb és horvát recepteket magyarra fordítja.</p>
       <h2>Biztonsági mentés</h2>
       <p class="tipp">A hozzáadott receptek csak ezen a telefonon vannak. Néha érdemes elmenteni őket egy fájlba.</p>
-      <button class="halk-gomb balra" data-export>Saját receptek mentése (${sajatReceptek.length})</button>
-      <label class="halk-gomb balra fajl-gomb">Mentés visszatöltése<input type="file" accept="application/json,.json" data-import hidden></label>`;
+      <button class="halk-gomb balra" data-export>${ikon('download-simple')} Saját receptek mentése (${sajatReceptek.length})</button>
+      <label class="halk-gomb balra fajl-gomb">${ikon('upload-simple')} Mentés visszatöltése<input type="file" accept="application/json,.json" data-import hidden></label>`;
   }
   app.innerHTML = html;
 }

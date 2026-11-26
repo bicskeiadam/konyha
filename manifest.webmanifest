@@ -1,13 +1,13 @@
 {
-  "name": "Konyha – Mit főzzek?",
+  "name": "Konyha: Mit főzzek?",
   "short_name": "Konyha",
   "lang": "hu",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#fffaf3",
-  "theme_color": "#c2410c",
+  "background_color": "#f4f6f4",
+  "theme_color": "#1d6b42",
   "share_target": {
     "action": "./",
     "method": "GET",
