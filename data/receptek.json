@@ -39,10 +39,10 @@
     { "id": "paradicsomszosz", "nev": "Paradicsomszósz", "ikon": "🥫", "kat": "kamra", "kulcsok": [ "paradicsomszósz", "paradicsompüré", "sűrített paradicsom", "passata", "paszírozott paradicsom", "paradajz pire", "paradajz sos", "paradajz sok", "pelat", "pasirani paradajz", "pasirana rajčica", "koncentrat paradajz", "passzírozott paradicsom", "pasiranog paradajz" ] },
     { "id": "zsemlemorzsa", "nev": "Zsemlemorzsa", "ikon": "🍞", "kat": "kamra", "kulcsok": [ "zsemlemorzs", "morzsa", "panko", "prezl", "krušne mrvic" ] },
     { "id": "cukor", "nev": "Cukor", "ikon": "🍬", "kat": "kamra", "kulcsok": [ "cukor", "porcukor", "šećer", "secer" ] },
-    { "id": "so", "nev": "Só", "alap": true },
-    { "id": "bors", "nev": "Bors", "alap": true },
-    { "id": "olaj", "nev": "Olaj", "alap": true },
-    { "id": "viz", "nev": "Víz", "alap": true }
+    { "id": "so", "nev": "Só", "alap": true, "kulcsok": ["=só", "=sót", "sóval", "=so", "=soli", "=sol", "=sola"] },
+    { "id": "bors", "nev": "Bors", "alap": true, "kulcsok": ["=bors", "borssal", "=biber", "=bibera", "=papar", "=papra"] },
+    { "id": "olaj", "nev": "Olaj", "alap": true, "kulcsok": ["olaj", "=ulje", "=ulja", "=uljem", "zejtin"] },
+    { "id": "viz", "nev": "Víz", "alap": true, "kulcsok": ["=víz", "=vizet", "vízzel", "szódavíz", "ásványvíz", "=voda", "=vode", "=vodu", "=vodom", "mineralna voda", "mineralne vode"] }
   ],
   "tiltott": ["tejszín", "kókusztej", "kókuszt", "sütőtök", "babérlev", "sirće", "sirce", "kiselo mlek", "kiselog mlek", "slatka pavlak", "slatke pavlak", "slatko vrhnj", "slatkog vrhnj", "leveles tészt", "lisnato test", "lisnatog test", "zöldbab", "mahun", "kukoricaliszt", "praziluk", "póréhagym", "kakaópor", "vaníliás cukor", "zöldpaprika nélkül", "paradajz paprik"],
   "receptek": [

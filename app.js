@@ -250,11 +250,17 @@ function ujRecept() {
     html += '<p class="uzenet">Egy pillanat, betöltöm a receptet…</p>';
   } else if (allapot === 'elonezet') {
     const info = [recept.ido, recept.adag].filter(Boolean).map(esc).join(' · ');
-    const sorok = recept.hozzavalok.map((h, i) => `
+    const sorok = recept.hozzavalok.map((h, i) => {
+      const alap = h.id && hozzavaloById[h.id]?.alap;
+      const ha = h.opcionalis ? '<span class="megj">ha van</span>' : '';
+      return `
       <li class="import-sor">
-        <span class="sor-szoveg">${esc(h.szoveg)}</span>
-        ${hozzavaloValaszto(i, h.id)}
-      </li>`).join('');
+        <span class="sor-szoveg">${esc(h.szoveg)}${ha}</span>
+        ${alap ? `<span class="megj">${esc(hozzavaloById[h.id].nev)} – mindig van itthon</span>` : hozzavaloValaszto(i, h.id)}
+      </li>`;
+    }).join('');
+    const lepesek = recept.lepesek.map((l, i) => `
+      <li><div class="lepes-elonezet"><span class="szam">${i + 1}</span><span>${esc(l)}</span></div></li>`).join('');
     html += `
       ${recept.kepUrl ? `<img class="nagykep" src="${recept.kepUrl}" alt="">` : ''}
       <label class="cimke" for="recept-nev">A recept neve</label>
@@ -264,7 +270,7 @@ function ujRecept() {
       <p class="tipp">Ellenőrizd, melyik gombhoz tartozik. Ami „nem számít”, az is látszani fog a receptben.</p>
       <ul class="hozzavalok">${sorok}</ul>
       <h2>Elkészítés</h2>
-      <p class="tipp">${recept.lepesek.length} lépés</p>
+      ${recept.lepesek.length ? `<ol class="lepesek">${lepesek}</ol>` : '<p class="uzenet">Ennél a receptnél nem találtam lépéseket.</p>'}
       <div class="also-sav"><button class="nagy-gomb" data-mentes>Hozzáadom a receptekhez</button></div>`;
   } else {
     html += `
