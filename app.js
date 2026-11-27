@@ -719,8 +719,45 @@ function ikon(nev) {
   return `<svg class="i" aria-hidden="true"><use href="icons/ikonok.svg#${nev}"/></svg>`;
 }
 
-function vissza() {
-  return `<div class="fejlec"><button class="vissza" data-vissza>${ikon('caret-left')} Vissza</button></div>`;
+// The header row. On recipe lists it also has a search button that opens a search field under it.
+function vissza(keresheto = false) {
+  const nyitva = keresheto && keresesek[location.hash] != null;
+  return `
+    <div class="fejlec">
+      <div class="fejlec-sor">
+        <button class="vissza" data-vissza>${ikon('caret-left')} Vissza</button>
+        ${keresheto ? `<button class="fejlec-gomb" data-kereses-nyit aria-label="Keresés" aria-pressed="${nyitva}">${ikon(nyitva ? 'x' : 'magnifying-glass')}</button>` : ''}
+      </div>
+      ${nyitva ? `<input class="mezo kereso-mezo" type="search" data-recept-kereso value="${esc(keresesek[location.hash])}"
+        placeholder="Recept neve vagy hozzávaló" autocomplete="off" enterkeyhint="search" aria-label="Recept keresése">` : ''}
+    </div>`;
+}
+
+/* ---------- Recipe search (Mit főzzek, Édességek, Családi receptek) ---------- */
+
+// Search text per list page; missing = the field is closed. Kept while she opens a recipe and comes back.
+let keresesek = {};
+
+// Every word must appear in the name or the ingredients, ignoring accents and case ("csirke paprik" works).
+function keresTalal(r, szoveg) {
+  const szavak = window.Illeszto.normal(szoveg).trim().split(/\s+/).filter(Boolean);
+  if (!szavak.length) return true;
+  const miben = window.Illeszto.normal([
+    r.nev,
+    ...r.hozzavalok.map((h) => (h.szoveg != null ? h.szoveg : hozzavaloById[h.id]?.nev || '')),
+  ].join(' '));
+  return szavak.every((w) => miben.includes(w));
+}
+
+function keresSzoveg() {
+  return (keresesek[location.hash] || '').trim();
+}
+
+function keresesFrissit() {
+  const hely = document.getElementById('lista-tartalom');
+  if (!hely) return;
+  const ut = location.hash;
+  hely.innerHTML = ut === '#/receptjeim' ? receptjeimTartalom() : receptListaTartalom(ut === '#/edessegek/receptek');
 }
 
 function tudodSzam(edes = false) {
@@ -853,21 +890,29 @@ function sugoOldal() {
 
 let csakSajat = false;
 
-function receptjeimOldal() {
+function receptjeimTartalom() {
   let lista = [...sajatReceptek];
   if (csakSajat && csalad) lista = lista.filter((r) => meta[`recept:${r.id}`]?.letrehozta === csalad.nev);
+  const keres = keresSzoveg();
+  if (keres) lista = lista.filter((r) => keresTalal(r, keres));
   const ido = (r) => meta[`recept:${r.id}`]?.letrehozva || Date.parse(r.hozzaadva || 0) || 0;
   lista.sort((a, b) => ido(b) - ido(a));
   const kartyak = lista.map((r) => receptKartya({ r, hiany: hianyzik(r), szerzo: true })).join('');
+  if (kartyak) return `<div class="lista">${kartyak}</div>`;
+  if (keres) return `<p class="uzenet">Nincs ilyen recept: „${esc(keres)}”.</p>`;
+  return `<p class="uzenet">${csakSajat ? 'Még nem adtál hozzá receptet.' : 'Még nincs elmentett recept. Az Új recept gombbal adhatsz hozzá.'}</p>`;
+}
+
+function receptjeimOldal() {
   app.innerHTML = `
-    ${vissza()}
+    ${vissza(true)}
     <h1>Családi receptek</h1>
     <button class="nagy-gomb kozepen" data-ugras="#/uj-recept">${ikon('plus')}<span class="gomb-szoveg">Új recept</span></button>
     ${csalad ? `<div class="szuro-sor">
       <button class="szuro" data-csak-sajat="0" aria-pressed="${!csakSajat}">Mind</button>
       <button class="szuro" data-csak-sajat="1" aria-pressed="${csakSajat}">Csak az enyém</button>
     </div>` : '<p class="tipp tipp-kozep">Ha összekötöd a család telefonjait, itt mindenki receptjei megjelennek. Lásd lent: Család és beállítások.</p>'}
-    ${kartyak ? `<div class="lista">${kartyak}</div>` : `<p class="uzenet">${csakSajat ? 'Még nem adtál hozzá receptet.' : 'Még nincs elmentett recept. Az Új recept gombbal adhatsz hozzá.'}</p>`}
+    <div id="lista-tartalom">${receptjeimTartalom()}</div>
     <button class="halk-gomb" data-ugras="#/beallitasok">${ikon('gear-six')} Család és beállítások</button>`;
 }
 
@@ -1411,17 +1456,20 @@ function receptKartya({ r, hiany, szerzo }) {
     </button>`;
 }
 
-function receptLista(edes = false) {
+function receptListaTartalom(edes) {
   const mind = rendezettReceptek().filter((x) => !x.r.edes === !edes);
+  const keres = keresSzoveg();
+  if (keres) {
+    const talalat = mind.filter((x) => keresTalal(x.r, keres));
+    return talalat.length
+      ? `<h2>Találatok (${talalat.length})</h2><div class="lista">${talalat.map(receptKartya).join('')}</div>`
+      : `<p class="uzenet">Nincs ilyen recept: „${esc(keres)}”.</p>`;
+  }
   const tudod = mind.filter((x) => !x.ismeretlen && x.hiany.length === 0);
   const majdnem = mind.filter((x) => !x.ismeretlen && x.hiany.length > 0 && x.hiany.length <= 2);
   const tobbi = mind.filter((x) => x.ismeretlen || x.hiany.length > 2);
 
-  let html = edes
-    ? `${vissza()}<h1>Édességek</h1>`
-    : `${vissza()}<h1>Mit főzzek?</h1>`;
-
-  html += `<h2>${edes ? 'Ezt meg tudod csinálni' : 'Ezt meg tudod főzni'}</h2>`;
+  let html = `<h2>${edes ? 'Ezt meg tudod csinálni' : 'Ezt meg tudod főzni'}</h2>`;
   html += tudod.length
     ? `<div class="lista">${tudod.map(receptKartya).join('')}</div>`
     : '<p class="uzenet">Ebből még nem jön ki egy recept sem. Lent láthatod, mi hiányzik.</p>';
@@ -1435,9 +1483,15 @@ function receptLista(edes = false) {
       ? `<h2>A többi recept</h2><div class="lista">${tobbi.map(receptKartya).join('')}</div>`
       : `<button class="halk-gomb" data-tobbi>A többi recept (${tobbi.length})</button>`;
   }
+  return html;
+}
 
-  html += `<button class="halk-gomb" data-ugras="#/kezi">${ikon('plus')} Új recept hozzáadása</button>`;
-  app.innerHTML = html;
+function receptLista(edes = false) {
+  app.innerHTML = `
+    ${vissza(true)}
+    <h1>${edes ? 'Édességek' : 'Mit főzzek?'}</h1>
+    <div id="lista-tartalom">${receptListaTartalom(edes)}</div>
+    <button class="halk-gomb" data-ugras="#/kezi">${ikon('plus')} Új recept hozzáadása</button>`;
 }
 
 function hozzavaloSor(h) {
@@ -1885,6 +1939,7 @@ function rajzol() {
   const ut = location.hash || '#/';
   if (!ut.startsWith('#/recept/')) engedjAludni();
   if (ut !== '#/beallitasok') naploAdat = null;
+  if (ut === '#/') keresesek = {};
 
   if (ut === '#/itthon') itthonOldal();
   else if (ut === '#/receptek') receptLista();
@@ -1934,6 +1989,11 @@ app.addEventListener('click', async (e) => {
     location.hash = gomb.dataset.ugras;
   } else if ('vissza' in gomb.dataset) {
     if (history.length > 1) history.back(); else location.hash = '#/';
+  } else if ('keresesNyit' in gomb.dataset) {
+    const ut = location.hash;
+    if (keresesek[ut] != null) delete keresesek[ut]; else keresesek[ut] = '';
+    rajzolMarad();
+    document.querySelector('[data-recept-kereso]')?.focus();
   } else if ('tobbi' in gomb.dataset) {
     mutasdATobbit = true;
     rajzolMarad();
@@ -2105,12 +2165,14 @@ app.addEventListener('change', (e) => {
 app.addEventListener('input', (e) => {
   if (e.target.dataset.kezi) { kezi[e.target.dataset.kezi] = e.target.value; keziPiszkozatMent(); }
   else if ('keziKeres' in e.target.dataset) keziKeres(e.target.value);
+  else if ('receptKereso' in e.target.dataset) { keresesek[location.hash] = e.target.value; keresesFrissit(); }
   else if ('hnev' in e.target.dataset && hForm) hForm.nev = e.target.value;
   else if (e.target.dataset.hertek && hForm) { hForm.ertek[+e.target.dataset.hertek] = e.target.value; hForm.forras = hForm.forras || 'kezi'; }
 });
 
 app.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && e.target.id === 'link') betolt(e.target.value.trim());
+  if (e.key === 'Enter' && 'receptKereso' in e.target.dataset) e.target.blur();
 });
 
 /* ---------- Start ---------- */

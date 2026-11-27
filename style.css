@@ -585,3 +585,15 @@ button:active, .fajl-gomb:active { transform: scale(.98); }
 .sugo-lepesek li::marker { color: var(--fo-szoveg); font-weight: 800; }
 .sugo .halk-gomb { width: auto; margin: 4px 16px 16px; }
 @media (prefers-reduced-motion: reduce) { .sugo-nyil { transition: none; } }
+
+/* Search button in the header row, and the search field under it */
+.fejlec-sor { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.fejlec-gomb {
+  display: grid; place-items: center;
+  width: 56px; height: 56px;
+  border: 2px solid var(--szegely); border-radius: var(--r);
+  background: var(--felulet);
+}
+.fejlec-gomb .i { font-size: 26px; }
+.fejlec-gomb[aria-pressed="true"] { border-color: var(--fo); color: var(--fo-szoveg); }
+.kereso-mezo { margin-top: 10px; }
