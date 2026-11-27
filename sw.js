@@ -18,7 +18,10 @@ const ALKALMAZAS = [
 ];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(VERZIO).then((c) => c.addAll(ALKALMAZAS)).then(() => self.skipWaiting()));
+  // 'reload' skips the phone's ordinary web cache, which may still hold the previous version for 10 minutes.
+  e.waitUntil(caches.open(VERZIO)
+    .then((c) => c.addAll(ALKALMAZAS.map((f) => new Request(f, { cache: 'reload' }))))
+    .then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (e) => {
@@ -52,6 +55,8 @@ self.addEventListener('fetch', (e) => {
   }
   if (e.request.method !== 'GET') return;
   if (url.origin !== location.origin) return;
+  // The app's own update check (verzioEllenoriz in app.js) must reach the server, not this cache.
+  if (url.searchParams.has('friss')) return;
 
   // Answer instantly from the phone, refresh quietly in the background:
   // if a file really changed, the open app is told and reloads itself once (see ujVerzio in app.js).

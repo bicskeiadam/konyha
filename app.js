@@ -2420,11 +2420,49 @@ function ujVerzio() {
   }, 2000);
 }
 
+// The app checks for updates itself, while it is open: every file is fetched straight from the
+// server (the "friss" mark gets past the service worker, the unique address past every other cache),
+// compared with the stored copy, and only when all of them have arrived are they stored and the app reloaded.
+// iOS can cut short downloads the service worker does in the background, so this does not rely on them.
+const SW_TAR = 'konyha-v1'; // VERZIO in sw.js
+const FRISSITENDO = ['index.html', 'app.js', 'style.css', 'illeszto.js', 'i18n.js', 'icons/ikonok.svg', 'data/receptek.json', 'data/receptek.sr.json'];
+
+async function egyezik(a, b) {
+  const [x, y] = await Promise.all([a.arrayBuffer(), b.arrayBuffer()]);
+  if (x.byteLength !== y.byteLength) return false;
+  const u = new Uint8Array(x), w = new Uint8Array(y);
+  for (let i = 0; i < u.length; i++) if (u[i] !== w[i]) return false;
+  return true;
+}
+
 let utolsoEllenorzes = 0;
-function verzioEllenoriz() {
-  if (!navigator.onLine || Date.now() - utolsoEllenorzes < 60000) return;
+async function verzioEllenoriz() {
+  if (!navigator.onLine || !navigator.serviceWorker.controller || Date.now() - utolsoEllenorzes < 60000) return;
   utolsoEllenorzes = Date.now();
-  navigator.serviceWorker.controller?.postMessage('ellenoriz');
+  try {
+    if (!(await caches.has(SW_TAR))) return;
+    const tar = await caches.open(SW_TAR);
+    const most = Date.now();
+    const friss = await Promise.all(FRISSITENDO.map(async (f) => {
+      const v = await fetch(`${f}?friss=${most}`, { cache: 'no-store' });
+      if (!v.ok) throw new Error(f);
+      return [f, v];
+    }));
+    let valtozott = false;
+    for (const [f, v] of friss) {
+      const regi = await tar.match(f, { ignoreSearch: true });
+      if (!regi || !(await egyezik(regi, v.clone()))) valtozott = true;
+    }
+    if (!valtozott) return;
+    const alap = location.origin + location.pathname.replace(/[^/]*$/, '');
+    for (const [f, v] of friss) {
+      await tar.put(alap + f, v.clone());
+      if (f === 'index.html') await tar.put(alap, v.clone());
+    }
+    ujVerzio();
+  } catch (_) {
+    // Bad wifi: try again next time the app is opened.
+  }
 }
 
 if ('serviceWorker' in navigator) {
