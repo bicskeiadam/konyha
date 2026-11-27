@@ -2570,6 +2570,24 @@ async function indul() {
   szinkronizal();
 }
 
+/* ---------- Press feedback: keeps the pressed look for at least 250 ms, so a quick tap is visible
+   on a screen recording. iOS only applies :active when a touch listener exists, so this covers that too. ---------- */
+
+document.addEventListener('pointerdown', (e) => {
+  const gomb = e.target.closest('button, .fajl-gomb');
+  if (!gomb || gomb.disabled) return;
+  gomb.classList.add('nyomva');
+  const kezdet = Date.now();
+  const elenged = () => {
+    window.removeEventListener('pointerup', elenged);
+    window.removeEventListener('pointercancel', elenged);
+    setTimeout(() => gomb.classList.remove('nyomva'), Math.max(0, 250 - (Date.now() - kezdet)));
+  };
+  window.addEventListener('pointerup', elenged);
+  window.addEventListener('pointercancel', elenged);
+}, { passive: true });
+document.addEventListener('touchstart', () => {}, { passive: true });
+
 /* ---------- New version: reload by itself, unless she is in the middle of something ---------- */
 
 const UJRATOLTVE_KULCS = 'konyha.ujratoltve';

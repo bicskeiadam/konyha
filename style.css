@@ -668,3 +668,67 @@ button:active, .fajl-gomb:active { transform: scale(.98); }
 .nyelv-kapcsolo[aria-checked="false"] .zaszlo.hu,
 .nyelv-kapcsolo[aria-checked="true"] .zaszlo.sr { opacity: 1; filter: none; }
 @media (prefers-reduced-motion: reduce) { .nyelv-gomb, .zaszlo { transition: none; } }
+
+/* ---------- Hover and press feedback, visible in screen recordings ----------
+   "nyomva" is added by app.js on touch/click and kept for at least 250 ms,
+   so even a quick tap shows up on a recording (a bare :active lasts only a frame or two). */
+button, .fajl-gomb {
+  transition: transform .16s ease, background-color .16s ease, border-color .16s ease, color .16s ease, box-shadow .16s ease;
+}
+:is(.menu-gomb, .halk-gomb, .vissza, .recept-kartya, .csempe, .szuro, .kezi-sor-gomb, .tap-elem, .ikon-valaszt,
+    .lepesek button, .fejlec-gomb, .ajanlat-masik, .kezi-sor-torol, .halk-link, .nyelv-kapcsolo, .uzenet.ajanlat-ures) {
+  --nyomva-hatter: var(--fo-halvany);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :is(.menu-gomb, .halk-gomb, .vissza, .recept-kartya, .csempe, .szuro, .kezi-sor-gomb, .tap-elem, .ikon-valaszt,
+      .lepesek button, .fejlec-gomb, .ajanlat-masik, .kezi-sor-torol, .uzenet.ajanlat-ures):not(:disabled):hover {
+    border-color: var(--fo-szoveg);
+    background: var(--fo-halvany);
+    transform: translateY(-2px);
+    box-shadow: var(--arnyek);
+  }
+  .tap-lista .tap-elem.tap-elem:not(:disabled):hover { transform: none; box-shadow: none; background: var(--fo-halvany); }
+  .halk-link:hover { color: var(--fo-szoveg); text-decoration: underline; }
+  :is(.nagy-gomb, .menu-gomb.fo, .uj-verzio button):not(:disabled):hover {
+    background: var(--fo-nyomott);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgb(23 64 40 / .28);
+  }
+  .uj-verzio button:hover { background: #e3e8e4; }
+  .nagy-gomb.szkenner-megse:not(:disabled):hover { background: #e3e8e4; }
+}
+
+/* Pressed: a clear colour change plus a small squeeze. */
+:is(.menu-gomb, .halk-gomb, .vissza, .recept-kartya, .csempe, .szuro, .kezi-sor-gomb, .tap-elem, .ikon-valaszt,
+    .lepesek button, .fejlec-gomb, .ajanlat-masik, .kezi-sor-torol, .uzenet.ajanlat-ures):not(:disabled):is(:active, .nyomva) {
+  background: var(--fo);
+  border-color: var(--fo);
+  color: #fff;
+  transform: scale(.96);
+  box-shadow: 0 0 0 4px var(--fo-szoveg);
+}
+:is(.menu-gomb, .halk-gomb, .vissza, .recept-kartya, .csempe, .szuro, .kezi-sor-gomb, .tap-elem, .ikon-valaszt,
+    .lepesek button, .fejlec-gomb, .ajanlat-masik, .kezi-sor-torol, .uzenet.ajanlat-ures):not(:disabled):is(:active, .nyomva) :where(*) { color: #fff; }
+:is(.menu-gomb, .halk-gomb, .vissza, .recept-kartya, .csempe, .szuro, .kezi-sor-gomb, .tap-elem, .ikon-valaszt,
+    .lepesek button, .fejlec-gomb, .ajanlat-masik, .kezi-sor-torol, .uzenet.ajanlat-ures):not(:disabled):is(:active, .nyomva) :where(.menu-ikon, .ikon-hely) { background: rgb(255 255 255 / .18); }
+.csempe.csempe[aria-pressed="true"]:is(:active, .nyomva), .szuro.szuro[aria-pressed="true"]:is(:active, .nyomva) { background: var(--fo-nyomott); border-color: var(--fo-nyomott); color: #fff; }
+.csempe.csempe[aria-pressed="true"]:is(:active, .nyomva) .pipa { background: #fff; color: var(--fo); }
+:is(.nagy-gomb, .menu-gomb.fo):not(:disabled):is(:active, .nyomva) {
+  background: var(--fo-nyomott);
+  color: #fff;
+  transform: scale(.96);
+  box-shadow: 0 0 0 5px var(--fo-szoveg);
+}
+.nagy-gomb.szkenner-megse:not(:disabled):is(:active, .nyomva), .uj-verzio button:is(:active, .nyomva) { background: #cfd8d2; color: #17201b; transform: scale(.96); }
+.halk-gomb.veszely:not(:disabled):is(:active, .nyomva) { background: var(--nincs-halvany); border-color: var(--nincs); color: var(--nincs); box-shadow: 0 0 0 4px var(--nincs-halvany); }
+.halk-link:is(:active, .nyomva) { color: var(--fo-szoveg); transform: scale(.97); }
+.nyelv-kapcsolo:is(:active, .nyomva) { transform: scale(.94); box-shadow: 0 0 0 4px var(--fo-halvany); }
+
+@media (prefers-reduced-motion: reduce) {
+  button, .fajl-gomb { transition: background-color .1s ease, border-color .1s ease, color .1s ease; }
+  button:is(:hover, :active, .nyomva), .fajl-gomb:is(:hover, :active, .nyomva) { transform: none !important; }
+}
+@media (hover: hover) and (pointer: fine) {
+  .szuro.szuro[aria-pressed="true"]:not(:disabled):hover { background: var(--fo-nyomott); color: #fff; }
+}
