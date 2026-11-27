@@ -624,3 +624,48 @@ button:active, .fajl-gomb:active { transform: scale(.98); }
 }
 .uj-verzio button { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 8px 16px; border: 0; border-radius: 10px; background: #fff; color: #17201b; font-size: 18px; font-weight: 700; }
 
+
+/* Language switch: two round flags on a track, a white knob slides under the chosen one */
+.nyelv-sor { display: flex; align-items: center; gap: 14px; margin: 6px 0 18px; }
+.nyelv-felirat { font-size: 17px; font-weight: 600; color: var(--halvany); }
+.nyelv-kapcsolo {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  width: 116px;
+  height: 58px;
+  padding: 0;
+  border: 2px solid var(--szegely);
+  border-radius: 999px;
+  background: var(--hatter);
+}
+.nyelv-gomb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--felulet);
+  box-shadow: 0 2px 6px rgba(23, 32, 27, .22);
+  transition: transform .25s ease;
+}
+.nyelv-kapcsolo[aria-checked="true"] .nyelv-gomb { transform: translateX(56px); }
+.zaszlo {
+  position: relative;
+  justify-self: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .12);
+  opacity: .45;
+  filter: grayscale(.6);
+  transition: opacity .25s ease, filter .25s ease;
+}
+.zaszlo svg { display: block; width: 100%; height: 100%; }
+.nyelv-kapcsolo[aria-checked="false"] .zaszlo.hu,
+.nyelv-kapcsolo[aria-checked="true"] .zaszlo.sr { opacity: 1; filter: none; }
+.nyelv-nev { font-size: 19px; font-weight: 700; }
+@media (prefers-reduced-motion: reduce) { .nyelv-gomb, .zaszlo { transition: none; } }

@@ -8,11 +8,13 @@ const ALKALMAZAS = [
   'style.css',
   'app.js',
   'illeszto.js',
+  'i18n.js',
   'manifest.webmanifest',
   'icons/icon-192.png',
   'icons/icon-512.png',
   'icons/ikonok.svg',
   'data/receptek.json',
+  'data/receptek.sr.json',
 ];
 
 self.addEventListener('install', (e) => {

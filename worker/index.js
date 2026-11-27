@@ -34,7 +34,7 @@ export default {
     const origin = keres.headers.get('origin') || '';
     const fejlec = {
       'content-type': 'application/json; charset=utf-8',
-      'access-control-allow-origin': ENGEDETT_ORIGINEK.includes(origin) ? origin : ENGEDETT_ORIGINEK[0],
+      'access-control-allow-origin': ENGEDETT_ORIGINEK.includes(origin) || /^http:\/\/localhost:\d+$/.test(origin) ? origin : ENGEDETT_ORIGINEK[0],
       'access-control-allow-methods': 'GET, POST, OPTIONS',
       'access-control-allow-headers': 'content-type, x-csalad',
       'vary': 'origin',
@@ -49,6 +49,16 @@ export default {
       if (!/^\d{8,14}$/.test(kod)) return valasz({ hiba: 'rossz-kod' }, 400);
       const termek = await vonalkodKeres(kod);
       return termek ? valasz(termek) : valasz({ hiba: 'nincs' }, 404);
+    }
+    if (ut === '/forditas' && keres.method === 'POST') {
+      if (!env.AI) return valasz({ hiba: 'nincs-ai' }, 500);
+      let test;
+      try { test = await keres.json(); } catch { return valasz({ hiba: 'rossz-keres' }, 400); }
+      const szovegek = (x, max) => (Array.isArray(x) ? x.slice(0, max).map((y) => String(y).slice(0, 800)) : []);
+      const recept = { nev: String(test.nev || '').slice(0, 200), hozzavalok: szovegek(test.hozzavalok, 80), lepesek: szovegek(test.lepesek, 60) };
+      if (test.nyelv !== 'sr' || !recept.nev) return valasz({ hiba: 'rossz-keres' }, 400);
+      const kesz = await forditSzerbre(env.AI, recept);
+      return kesz ? valasz(kesz) : valasz({ hiba: 'nem-sikerult' }, 502);
     }
     if (ut === '/meghivo/bevalt' && keres.method === 'POST') {
       let test;
@@ -389,11 +399,43 @@ async function forditMagyarra(ai, recept) {
   }
 }
 
-async function forditDarab(ai, darab) {
+// Family recipes are kept in Hungarian; Serbian-speaking family members see this translation.
+const SZERB_UTASITAS = `You translate Hungarian home-cooking recipes into Serbian (Latin script, ekavian) for a young Serbian home cook.
+Rules:
+- Natural, simple Serbian kitchen language. Use the usual Serbian names: tejföl = kisela pavlaka, tejszín = slatka pavlaka, túró = mladi sir, trappista/sajt = kačkavalj, pirospaprika = aleva paprika, zsemlemorzsa = prezle, vöröshagyma = crni luk, fokhagyma = beli luk, krumpli = krompir, rántás = zaprška, nokedli = galuške, pörkölt = perkelt, főzelék = varivo, darált hús = mleveno meso, sütőpor = prašak za pecivo, élesztő = kvasac, vaníliás cukor = vanilin šećer, porcukor = šećer u prahu, meggy = višnje, cukkini = tikvice.
+- Units: evőkanál/ek = kašika, teáskanál/tk = kašičica, gerezd = čen, fej = glavica, csomag = kesica, csipet = prstohvat, bögre = šolja, db = kom. Convert dkg to g (multiply by 10, e.g. 25 dkg = 250 g). Keep other numbers and g/ml/dl/kg as they are.
+- "ízlés szerint" = "po ukusu", "ha van" = "ako imaš".
+- Steps: informal singular "ti" imperative, like a family cookbook: "Iseckaj luk sitno i propirjaj ga na ulju.", "Kuvaj", "Pomešaj", "Peci", "Posoli". NEVER the plural or polite -te forms (not "Iseckajte", "Kuvajte", "Razdvojte"), and never an infinitive ("Peći"). Hungarian steps written in first person ("főzöm", "keverem") also become this imperative.
+- The recipe name: a natural Serbian dish name with correct grammatical agreement (e.g. "Nagyi töltött paprikája" = "Bakine punjene paprike", "Anna sütije" = "Anin kolač"). Keep proper names.
+- kelkáposzta = kelj (not kupus), káposzta = kupus, spenót = spanać, padlizsán = plavi patlidžan, sárgarépa = šargarepa.
+- Keep brand names. Do not use English words.
+- Every list must have exactly as many items as in the input, in the same order.
+Return only the JSON, with the same keys you received (e.g. {"nev": "...", "hozzavalok": ["..."]} or {"lepesek": ["..."]}).`;
+
+// The name goes on its own, so an ingredient line can't leak into it.
+async function forditSzerbre(ai, recept) {
+  const darabok = [{ nev: recept.nev }];
+  if (recept.hozzavalok.length) darabok.push({ hozzavalok: recept.hozzavalok });
+  for (let i = 0; i < recept.lepesek.length; i += LEPES_CSOMAG) {
+    darabok.push({ lepesek: recept.lepesek.slice(i, i + LEPES_CSOMAG) });
+  }
+  try {
+    const kesz = await Promise.all(darabok.map((d) => forditDarab(ai, d, SZERB_UTASITAS)));
+    return {
+      nev: tisztit(kesz[0].nev),
+      hozzavalok: kesz.flatMap((d) => d.hozzavalok || []).map(tisztit),
+      lepesek: kesz.flatMap((d) => d.lepesek || []).map(tisztit),
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function forditDarab(ai, darab, utasitas = FORDITASI_UTASITAS) {
   const valasz = await Promise.race([
     ai.run(FORDITO_MODELL, {
       messages: [
-        { role: 'system', content: FORDITASI_UTASITAS },
+        { role: 'system', content: utasitas },
         { role: 'user', content: JSON.stringify(darab) },
       ],
       max_tokens: 2048,

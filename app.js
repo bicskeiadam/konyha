@@ -97,7 +97,7 @@ function tapertek(recept) {
 
 const kerekKcal = (v) => Math.round(v / 10) * 10;
 const kerekG = (v) => Math.round(v);
-const szam = (v) => v.toLocaleString('hu-HU', { maximumFractionDigits: 1 });
+const szam = (v) => v.toLocaleString(LOCALE, { maximumFractionDigits: 1 });
 
 /* ---------- Ingredient nutrition page ---------- */
 
@@ -127,7 +127,7 @@ function tapanyagSorok() {
 function tapanyagOldal() {
   const m = MERTEKEK.find((x) => x.kulcs === tapSzerint);
   const sorok = tapanyagSorok();
-  sorok.sort((a, b) => (m.tobbJobb ? b[m.kulcs] - a[m.kulcs] : a[m.kulcs] - b[m.kulcs]) || a.nev.localeCompare(b.nev, 'hu'));
+  sorok.sort((a, b) => (m.tobbJobb ? b[m.kulcs] - a[m.kulcs] : a[m.kulcs] - b[m.kulcs]) || a.nev.localeCompare(b.nev, NYELV));
   const max = Math.max(...sorok.map((s) => s[m.kulcs]), 1);
 
   // "355 kcal" needs no word after it; grams do ("1 g szénhidrát").
@@ -483,7 +483,73 @@ function ismeretlen(recept) {
 function rendezettReceptek() {
   return osszesRecept()
     .map((r) => ({ r, hiany: hianyzik(r), ismeretlen: ismeretlen(r) }))
-    .sort((a, b) => a.ismeretlen - b.ismeretlen || a.hiany.length - b.hiany.length || a.r.nev.localeCompare(b.r.nev, 'hu'));
+    .sort((a, b) => a.ismeretlen - b.ismeretlen || a.hiany.length - b.hiany.length || a.r.nev.localeCompare(b.r.nev, NYELV));
+}
+
+/* ---------- Family recipes in Serbian ---------- */
+
+// Family recipes are stored in Hungarian (Mom reads them). In Serbian mode the reader translates
+// each one once; the translation is kept per recipe and redone only if the recipe changes.
+const FORDITAS_KULCS = 'konyha.forditasok';
+let forditasok = JSON.parse(localStorage.getItem(FORDITAS_KULCS) || '{}');
+const forditasSor = [];
+const forditasHiba = new Set();
+let forditasFut = false;
+
+function forditasHash(r) {
+  const s = JSON.stringify([r.nev, r.hozzavalok.map((h) => h.szoveg ?? ''), r.lepesek]);
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = (Math.imul(h, 33) ^ s.charCodeAt(i)) | 0;
+  return String(h >>> 0);
+}
+
+// The recipe as the screen should show it. Built-in recipes are already in the screen's language.
+function nezet(r) {
+  if (NYELV !== 'sr' || !r.sajat) return r;
+  const f = forditasok[r.id];
+  const kesz = f && f.h === forditasHash(r);
+  if (!kesz) forditasKer(r);
+  let i = 0;
+  return {
+    ...r,
+    nev: kesz ? f.nev : r.nev,
+    ido: idoSr(r.ido),
+    adag: adagSr(r.adag),
+    lepesek: kesz ? f.lepesek : r.lepesek,
+    hozzavalok: r.hozzavalok.map((h) => (h.szoveg != null
+      ? { ...h, szoveg: kesz ? (f.hozzavalok[i++] ?? h.szoveg) : h.szoveg }
+      : { ...h, menny: mennySr(h.menny), mennyHu: h.menny })),
+    forditasFolyamatban: !kesz,
+  };
+}
+
+function forditasKer(r) {
+  if (!navigator.onLine || forditasHiba.has(r.id) || forditasSor.some((x) => x.id === r.id)) return;
+  forditasSor.push(r);
+  if (!forditasFut) forditasFuttat();
+}
+
+// One recipe at a time, so a long family list doesn't flood the reader.
+async function forditasFuttat() {
+  forditasFut = true;
+  while (forditasSor.length) {
+    const r = forditasSor.shift();
+    try {
+      const v = await fetch(OLVASO_URL + 'forditas', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ nyelv: 'sr', nev: r.nev, hozzavalok: r.hozzavalok.filter((h) => h.szoveg != null).map((h) => h.szoveg), lepesek: r.lepesek }),
+      });
+      const j = await v.json();
+      if (!v.ok || j.hiba) throw new Error();
+      forditasok[r.id] = { h: forditasHash(r), nev: j.nev, hozzavalok: j.hozzavalok, lepesek: j.lepesek };
+      localStorage.setItem(FORDITAS_KULCS, JSON.stringify(forditasok));
+      if (!/^#\/(kezi|uj|hozzavalo)/.test(location.hash)) rajzolMarad();
+    } catch (_) {
+      forditasHiba.add(r.id);
+    }
+  }
+  forditasFut = false;
 }
 
 /* ---------- Storage on the phone (IndexedDB) for imported recipes ---------- */
@@ -702,7 +768,12 @@ async function alkalmaz(elemek) {
 function szerzoSor(tipus, id) {
   const m = meta[`${tipus}:${id}`];
   if (!m || !m.letrehozta) return '';
-  const datum = (t) => new Date(t).toLocaleDateString('hu-HU', { month: 'short', day: 'numeric' });
+  const datum = (t) => new Date(t).toLocaleDateString(LOCALE, { month: 'short', day: 'numeric' });
+  if (NYELV === 'sr') {
+    let s = `Dodato: ${m.letrehozta}, ${datum(m.letrehozva)}`;
+    if (m.modositotta && m.modositotta !== m.letrehozta) s += ` · Poslednja izmena: ${m.modositotta}, ${datum(m.modositva)}`;
+    return s;
+  }
   let s = `${m.letrehozta} adta hozzá, ${datum(m.letrehozva)}`;
   // Hungarian short dates already end with a period ("nov. 26."), so none is added after them.
   if (m.modositotta && m.modositotta !== m.letrehozta) s += ` Utoljára ${m.modositotta} módosította, ${datum(m.modositva)}`;
@@ -744,6 +815,7 @@ function keresTalal(r, szoveg) {
   if (!szavak.length) return true;
   const miben = window.Illeszto.normal([
     r.nev,
+    nezet(r).nev,
     ...r.hozzavalok.map((h) => (h.szoveg != null ? h.szoveg : hozzavaloById[h.id]?.nev || '')),
   ].join(' '));
   return szavak.every((w) => miben.includes(w));
@@ -943,7 +1015,9 @@ const SUGO = [
 ];
 
 function sugoOldal() {
-  const temak = SUGO.map(([ikonNev, cim, lepesek, cel]) => `
+  const temak = SUGO.map(([ikonNev, cim, lepesek, cel], i) => {
+    if (NYELV === 'sr' && SUGO_SR[i]) [cim, lepesek] = SUGO_SR[i];
+    return `
     <details class="sugo">
       <summary>
         <span class="sugo-ikon">${ikon(ikonNev)}</span>
@@ -952,7 +1026,8 @@ function sugoOldal() {
       </summary>
       <ol class="sugo-lepesek">${lepesek.map((l) => `<li>${l}</li>`).join('')}</ol>
       ${cel ? `<button class="halk-gomb balra" data-ugras="${cel}">${ikon('arrow-right')} Kipróbálom</button>` : ''}
-    </details>`).join('');
+    </details>`;
+  }).join('');
   app.innerHTML = `
     ${vissza()}
     <h1>Hogyan működik?</h1>
@@ -1047,17 +1122,33 @@ function meghivoResz() {
 }
 
 function idoSzoveg(t) {
-  return new Date(t).toLocaleString('hu-HU', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return new Date(t).toLocaleString(LOCALE, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
 const NAPLO_MIT = { hozzaadta: 'hozzáadta', modositotta: 'módosította', torolte: 'törölte' };
 const NAPLO_TIPUS = { recept: 'receptet', kep: 'fényképet', hozzavalo: 'hozzávalót', feluliras: 'tápértéket' };
+
+// Two flags on a sliding switch; tapping it swaps Hungarian and Serbian and reloads the app.
+function nyelvKapcsolo() {
+  const sr = NYELV === 'sr';
+  return `
+    <div class="nyelv-sor">
+      <span class="nyelv-felirat">Nyelv · Jezik</span>
+      <button class="nyelv-kapcsolo" data-nyelv role="switch" aria-checked="${sr}" aria-label="Magyar / Srpski">
+        <span class="nyelv-gomb" aria-hidden="true"></span>
+        <span class="zaszlo hu" aria-hidden="true"><svg viewBox="0 0 3 3" preserveAspectRatio="none"><rect width="3" height="1" fill="#cd2a3e"/><rect y="1" width="3" height="1" fill="#fff"/><rect y="2" width="3" height="1" fill="#436f4d"/></svg></span>
+        <span class="zaszlo sr" aria-hidden="true"><svg viewBox="0 0 3 3" preserveAspectRatio="none"><rect width="3" height="1" fill="#c6363c"/><rect y="1" width="3" height="1" fill="#0c4076"/><rect y="2" width="3" height="1" fill="#fff"/></svg></span>
+      </button>
+      <span class="nyelv-nev">${sr ? 'Srpski' : 'Magyar'}</span>
+    </div>`;
+}
 
 function beallitasokOldal() {
   if (!csalad) {
     app.innerHTML = `
       ${vissza()}
       <h1>Család és beállítások</h1>
+      ${nyelvKapcsolo()}
       <h2>Közös családi receptkönyv</h2>
       <p>Ha összekötöd a család telefonjait, amit bárki hozzáad, mindenkinél megjelenik.</p>
       ${csatlakozasHiba ? `<p class="uzenet hiba-uzenet">${esc(csatlakozasHiba)}</p>` : ''}
@@ -1083,6 +1174,7 @@ function beallitasokOldal() {
   app.innerHTML = `
     ${vissza()}
     <h1>Család és beállítások</h1>
+    ${nyelvKapcsolo()}
     <label class="cimke" for="b-nev">A neved ezen a telefonon</label>
     <input id="b-nev" class="mezo" value="${esc(csalad.nev)}" autocomplete="off">
     <button class="halk-gomb balra" data-nev-ment>${ikon('check')} Név mentése</button>
@@ -1316,7 +1408,7 @@ function keziSor(sor, i) {
       <button class="kezi-sor-gomb" data-kezi-szerk="${i}" ${h ? '' : 'disabled'}>
         <span class="ikon" aria-hidden="true">${h ? (h.ikon || '🥄') : '📝'}</span>
         <span class="kezi-sor-nev">${esc(nev)}</span>
-        ${h ? `<span class="kezi-sor-menny">${esc(mennyisegSzoveg(sor))}</span>` : '<span class="kezi-sor-menny">szövegként</span>'}
+        ${h ? `<span class="kezi-sor-menny">${esc(mennySr(mennyisegSzoveg(sor)))}</span>` : '<span class="kezi-sor-menny">szövegként</span>'}
       </button>
       <button class="kezi-sor-torol" data-kezi-torol="${i}" aria-label="${esc(nev)} törlése">${ikon('x')}</button>
     </li>`;
@@ -1510,7 +1602,8 @@ function receptKep(r, osztaly) {
   return r.ikon ? `<span class="ikon" aria-hidden="true">${r.ikon}</span>` : `<span class="ikon-hely">${ikon('fork-knife')}</span>`;
 }
 
-function receptKartya({ r, hiany, szerzo }) {
+function receptKartya({ r: eredeti, hiany, szerzo }) {
+  const r = nezet(eredeti);
   const ki = szerzo && csalad ? meta[`recept:${r.id}`]?.letrehozta : '';
   const hianySor = (ki ? `<span class="szerzo-sor">${ikon('user')} ${esc(ki)}</span>` : '')
     + (hiany.length ? `<span class="hiany">Kell még: ${esc(hiany.join(', '))}</span>` : '');
@@ -1592,11 +1685,12 @@ function taperTabla(r) {
     const k = egyseg === 'kcal' ? kerekKcal : kerekG;
     return `<tr><th>${nev}</th><td>${k(t.adag[kulcs])} ${egyseg}</td><td>${k(t.osszes[kulcs])} ${egyseg}</td></tr>`;
   };
+  const sr = NYELV === 'sr';
   const megjegyzesek = [
-    r.megj,
-    t.benne.length ? `Benne van: ${t.benne.join(', ')}.` : '',
-    t.kimaradt.length ? `Nincs benne: ${t.kimaradt.join(', ')} (nincs bepipálva, hogy itthon van).` : '',
-    t.nemSzamolt.length ? `Mennyiség nélkül, ezért nincs benne: ${t.nemSzamolt.join(', ')}.` : '',
+    sr ? '' : r.megj,
+    t.benne.length ? (sr ? `Uračunato: ${t.benne.join(', ')}.` : `Benne van: ${t.benne.join(', ')}.`) : '',
+    t.kimaradt.length ? (sr ? `Nije uračunato: ${t.kimaradt.join(', ')} (nije označeno da imaš).` : `Nincs benne: ${t.kimaradt.join(', ')} (nincs bepipálva, hogy itthon van).`) : '',
+    t.nemSzamolt.length ? (sr ? `Bez količine, pa nije uračunato: ${t.nemSzamolt.join(', ')}.` : `Mennyiség nélkül, ezért nincs benne: ${t.nemSzamolt.join(', ')}.`) : '',
   ].filter(Boolean).map(esc).join(' ');
   return `
     <div class="tapertek">
@@ -1609,13 +1703,14 @@ function taperTabla(r) {
           ${sor('Szénhidrát', 'szenhidrat', 'g')}
         </tbody>
       </table>
-      <p class="tap-megj">Becsült érték. ${megjegyzesek}</p>
+      <p class="tap-megj">${sr ? 'Procenjena vrednost.' : 'Becsült érték.'} ${megjegyzesek}</p>
     </div>`;
 }
 
 function receptOldal(id) {
-  const r = osszesRecept().find((x) => x.id === id);
-  if (!r) { location.replace('#/receptek'); return; }
+  const eredeti = osszesRecept().find((x) => x.id === id);
+  if (!eredeti) { location.replace('#/receptek'); return; }
+  const r = nezet(eredeti);
 
   const lepesek = r.lepesek.map((l, i) => `
     <li><button data-lepes aria-pressed="false">
@@ -1644,6 +1739,7 @@ function receptOldal(id) {
     <h2>Hozzávalók</h2>
     <ul class="hozzavalok">${r.hozzavalok.map(hozzavaloSor).join('')}</ul>
     <h2>Elkészítés</h2>
+    ${r.forditasFolyamatban && navigator.onLine ? '<p class="uzenet">Fordítás…</p>' : ''}
     <p class="tipp">Koppints a lépésre, ha megvagy vele.</p>
     <ol class="lepesek">${lepesek}</ol>
     ${lab}`;
@@ -1801,7 +1897,7 @@ const OPCIONALIS = /opcion|elhagyhat|ha van|ízlés szerint|tetszés szerint|dí
 
 // Built-in recipes: "ha van" (kolbász, if you have it). Imported lines: "ízlés szerint", unless the line already says so.
 function opcionalisCimke(h) {
-  if (h.szoveg == null) return h.menny === 'ízlés szerint' ? '' : '<span class="megj">ha van</span>';
+  if (h.szoveg == null) return (h.mennyHu || h.menny) === 'ízlés szerint' ? '' : '<span class="megj">ha van</span>';
   return /ízlés szerint/i.test(h.szoveg) ? '' : '<span class="megj">ízlés szerint</span>';
 }
 
@@ -1912,7 +2008,7 @@ async function kepFeldolgoz(cel, fajl) {
   try {
     blob = await kicsinyit(ideiglenes);
   } catch (_) {
-    alert('Ezt a képet nem sikerült megnyitni.');
+    alert(tr('Ezt a képet nem sikerült megnyitni.'));
     return;
   } finally {
     URL.revokeObjectURL(ideiglenes);
@@ -1977,9 +2073,11 @@ async function importal(fajl) {
     adatFrissit();
     await sajatBetolt();
     if (csalad) mindentJelol();
-    alert(`${mentett.receptek.length} recept és ${(mentett.kepek || []).length} fénykép visszatöltve.`);
+    alert(NYELV === 'sr'
+      ? `Vraćeno iz fajla: recepata ${mentett.receptek.length}, fotografija ${(mentett.kepek || []).length}.`
+      : `${mentett.receptek.length} recept és ${(mentett.kepek || []).length} fénykép visszatöltve.`);
   } catch (_) {
-    alert('Ez nem egy Konyha mentés fájl.');
+    alert(tr('Ez nem egy Konyha mentés fájl.'));
   }
   rajzol();
 }
@@ -2088,7 +2186,7 @@ app.addEventListener('click', async (e) => {
   } else if ('csaladUj' in gomb.dataset) {
     await csatlakozas(gomb, true);
   } else if ('kilepes' in gomb.dataset) {
-    if (confirm('Biztosan kilépsz a családi receptkönyvből? A receptek ezen a telefonon maradnak.')) {
+    if (confirm(tr('Biztosan kilépsz a családi receptkönyvből? A receptek ezen a telefonon maradnak.'))) {
       csalad = null;
       kuldendo = [];
       localStorage.removeItem(CSALAD_KULCS);
@@ -2097,6 +2195,11 @@ app.addEventListener('click', async (e) => {
       meghivo = null;
       location.replace('#/');
     }
+  } else if ('nyelv' in gomb.dataset) {
+    gomb.setAttribute('aria-checked', String(NYELV !== 'sr'));
+    localStorage.setItem(NYELV_KULCS, NYELV === 'sr' ? 'hu' : 'sr');
+    // Let the knob finish sliding before the app restarts in the other language.
+    setTimeout(() => location.reload(), 280);
   } else if ('nevMent' in gomb.dataset) {
     const nev = document.getElementById('b-nev').value.trim();
     if (nev) { csalad.nev = nev; localStorage.setItem(CSALAD_KULCS, JSON.stringify(csalad)); rajzolMarad(); }
@@ -2109,18 +2212,21 @@ app.addEventListener('click', async (e) => {
     await meghivoKeres();
   } else if ('meghivoKuld' in gomb.dataset && meghivo) {
     const kod = meghivoSzoveg(meghivo.kod);
-    const szoveg = `Gyere a családi receptkönyvbe! Nyisd meg a Konyhát (${location.origin}${location.pathname}), menj a Család és beállítások oldalra, és írd be ezt a kódot: ${kod}`;
+    const cim = `${location.origin}${location.pathname}`;
+    const szoveg = NYELV === 'sr'
+      ? `Pridruži se porodičnoj knjizi recepata! Otvori Konyhu (${cim}), idi na Porodica i podešavanja i upiši ovaj kod: ${kod}`
+      : `Gyere a családi receptkönyvbe! Nyisd meg a Konyhát (${cim}), menj a Család és beállítások oldalra, és írd be ezt a kódot: ${kod}`;
     if (navigator.share) {
-      navigator.share({ title: 'Konyha meghívó', text: szoveg }).catch(() => {});
+      navigator.share({ title: tr('Konyha meghívó'), text: szoveg }).catch(() => {});
     } else {
       await navigator.clipboard.writeText(szoveg).catch(() => {});
-      alert('A meghívó a vágólapra került. Küldd el üzenetben.');
+      alert(tr('A meghívó a vágólapra került. Küldd el üzenetben.'));
     }
   } else if ('lepes' in gomb.dataset) {
     gomb.setAttribute('aria-pressed', gomb.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
   } else if ('torles' in gomb.dataset) {
     const edes = location.hash === '#/edessegek';
-    if (confirm('Biztosan törlöd a pipákat ezen a listán?')) {
+    if (confirm(tr('Biztosan törlöd a pipákat ezen a listán?'))) {
       for (const h of relevansHozzavalok(edes)) itthon.delete(h.id);
       mentsItthon();
       itthonOldal(edes);
@@ -2169,7 +2275,7 @@ app.addEventListener('click', async (e) => {
   } else if (gomb.dataset.receptTorles) {
     const id = gomb.dataset.receptTorles;
     const r = sajatReceptek.find((x) => x.id === id);
-    if (r && confirm(`Biztosan törlöd ezt a receptet?\n\n${r.nev}`)) {
+    if (r && confirm(`${tr('Biztosan törlöd ezt a receptet?')}\n\n${nezet(r).nev}`)) {
       await Tar.torol(id);
       sajatReceptek = sajatReceptek.filter((x) => x.id !== id);
       jelol('recept', id, r.nev);
@@ -2212,7 +2318,7 @@ app.addEventListener('click', async (e) => {
     rajzolMarad();
   } else if ('htorol' in gomb.dataset) {
     const kulcs = hForm.kulcs;
-    if (confirm(`Biztosan törlöd ezt a hozzávalót?\n\n${hForm.nev}`)) {
+    if (confirm(`${tr('Biztosan törlöd ezt a hozzávalót?')}\n\n${hForm.nev}`)) {
       sajatHozzavalok = sajatHozzavalok.filter((s) => s.id !== kulcs);
       jelol('hozzavalo', kulcs, hForm.nev);
       itthon.delete(kulcs);
@@ -2267,6 +2373,9 @@ async function indul() {
   try {
     const valasz = await fetch('data/receptek.json');
     adat = await valasz.json();
+    if (NYELV === 'sr') {
+      try { adatSzerbre(adat, await (await fetch('data/receptek.sr.json')).json()); } catch (_) { /* stays Hungarian */ }
+    }
   } catch (_) {
     app.innerHTML = '<p class="uzenet">Most nem sikerült betölteni a recepteket. Csatlakozz egyszer wifire, utána internet nélkül is működik.</p>';
     return;
