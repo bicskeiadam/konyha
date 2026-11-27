@@ -52,13 +52,43 @@ self.addEventListener('fetch', (e) => {
   if (url.origin !== location.origin) return;
 
   // Answer instantly from the phone, refresh quietly in the background:
-  // the new version shows up the next time the app is opened, with no waiting on bad wifi.
+  // if a file really changed, the open app is told and reloads itself once (see ujVerzio in app.js).
   e.respondWith(caches.open(VERZIO).then(async (c) => {
     const tarolt = await c.match(e.request, { ignoreSearch: true });
-    const friss = fetch(e.request)
-      .then((v) => { if (v.ok) c.put(e.request, v.clone()); return v; })
-      .catch(() => tarolt || c.match('index.html'));
-    if (tarolt) { e.waitUntil(friss); return tarolt; }
-    return friss;
+    const friss = frissit(c, e.request, tarolt);
+    if (tarolt) { e.waitUntil(friss.catch(() => {})); return tarolt; }
+    return friss.catch(() => c.match('index.html'));
   }));
+});
+
+// Fetches the file, stores it, and tells the app when it differs from the stored copy.
+async function frissit(c, keres, tarolt) {
+  // A page-load request can't be re-sent with options, so its address is used instead.
+  const v = await fetch(keres.mode === 'navigate' ? keres.url : keres, { cache: 'no-cache' });
+  if (!v.ok) return tarolt || v;
+  if (tarolt && !(await ugyanaz(tarolt.clone(), v.clone()))) uzen({ tipus: 'uj-verzio' });
+  await c.put(keres, v.clone());
+  return v;
+}
+
+async function ugyanaz(a, b) {
+  const [x, y] = await Promise.all([a.arrayBuffer(), b.arrayBuffer()]);
+  if (x.byteLength !== y.byteLength) return false;
+  const u = new Uint8Array(x), w = new Uint8Array(y);
+  for (let i = 0; i < u.length; i++) if (u[i] !== w[i]) return false;
+  return true;
+}
+
+async function uzen(adat) {
+  for (const kliens of await self.clients.matchAll({ type: 'window' })) kliens.postMessage(adat);
+}
+
+// The app asks for a check when it is opened or comes back to the front: iOS often resumes the app
+// from memory without loading anything, so nothing would be refreshed otherwise.
+self.addEventListener('message', (e) => {
+  if (e.data !== 'ellenoriz') return;
+  e.waitUntil(caches.open(VERZIO).then((c) => Promise.all(ALKALMAZAS.map(async (f) => {
+    const keres = new Request(new URL(f, self.registration.scope).href);
+    return frissit(c, keres, await c.match(keres, { ignoreSearch: true })).catch(() => {});
+  }))));
 });

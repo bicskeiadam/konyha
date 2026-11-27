@@ -2277,8 +2277,52 @@ async function indul() {
   szinkronizal();
 }
 
+/* ---------- New version: reload by itself, unless she is in the middle of something ---------- */
+
+const UJRATOLTVE_KULCS = 'konyha.ujratoltve';
+let ujVerzioIdozito = null;
+
+// Screens with a half-filled form or a running camera, where a reload would lose what she did.
+function elfoglalt() {
+  const ut = location.hash;
+  return szkenner || ['#/kezi', '#/uj', '#/hozzavalo', '#/kepbol', '#/csatlakozas'].some((x) => ut.startsWith(x))
+    || (location.hash === '#/beallitasok' && !csalad)
+    || document.activeElement?.matches('input, textarea');
+}
+
+function ujVerzio() {
+  // Several files may change in one update; wait until they have all arrived.
+  clearTimeout(ujVerzioIdozito);
+  ujVerzioIdozito = setTimeout(() => {
+    const nemreg = Date.now() - +(sessionStorage.getItem(UJRATOLTVE_KULCS) || 0) < 30000;
+    if (!elfoglalt() && !nemreg) {
+      sessionStorage.setItem(UJRATOLTVE_KULCS, String(Date.now()));
+      location.reload();
+    } else if (!document.querySelector('.uj-verzio')) {
+      const sav = document.createElement('div');
+      sav.className = 'uj-verzio';
+      sav.innerHTML = `<span>Új verzió érkezett.</span><button>${ikon('arrows-clockwise')} Frissítés</button>`;
+      sav.querySelector('button').addEventListener('click', () => {
+        sessionStorage.setItem(UJRATOLTVE_KULCS, String(Date.now()));
+        location.reload();
+      });
+      document.body.prepend(sav);
+    }
+  }, 2000);
+}
+
+let utolsoEllenorzes = 0;
+function verzioEllenoriz() {
+  if (!navigator.onLine || Date.now() - utolsoEllenorzes < 60000) return;
+  utolsoEllenorzes = Date.now();
+  navigator.serviceWorker.controller?.postMessage('ellenoriz');
+}
+
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js');
+  navigator.serviceWorker.addEventListener('message', (e) => { if (e.data?.tipus === 'uj-verzio') ujVerzio(); });
+  navigator.serviceWorker.ready.then(() => setTimeout(verzioEllenoriz, 3000));
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') verzioEllenoriz(); });
 }
 
 indul();

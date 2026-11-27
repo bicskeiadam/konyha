@@ -614,3 +614,13 @@ button:active, .fajl-gomb:active { transform: scale(.98); }
 .ajanlat-masik .i { font-size: 20px; color: var(--fo-szoveg); }
 .ajanlat-ures { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; font-size: 19px; color: var(--szoveg); }
 .ajanlat-ures .i { flex: none; font-size: 24px; margin-left: auto; color: var(--fo-szoveg); }
+
+/* "New version" bar, only when a reload would interrupt her */
+.uj-verzio {
+  position: sticky; top: calc(8px + env(safe-area-inset-top)); z-index: 40; max-width: 640px; margin: 10px auto 0; width: calc(100% - 24px);
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px 10px 10px 18px; border-radius: var(--r); background: var(--fo); color: #fff;
+  font-size: 18px; font-weight: 700; box-shadow: var(--arnyek);
+}
+.uj-verzio button { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 8px 16px; border: 0; border-radius: 10px; background: #fff; color: #17201b; font-size: 18px; font-weight: 700; }
+
