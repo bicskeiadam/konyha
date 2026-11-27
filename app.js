@@ -1127,6 +1127,21 @@ const SUGO = [
   ], null],
 ];
 
+// Screen recordings shown at the top of a help topic, one per phone type.
+// Files go in videok/ as <topic icon>-android.mp4 and <topic icon>-ios.mp4 (a Serbian one: ...-android.sr.mp4),
+// and each file's name (without .mp4) is listed here. A topic without a video shows only its steps.
+const SUGO_VIDEOK = new Set([
+]);
+const IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+function sugoVideo(ikonNev) {
+  const alap = `${ikonNev}-${IOS ? 'ios' : 'android'}`;
+  const nev = NYELV === 'sr' && SUGO_VIDEOK.has(alap + '.sr') ? alap + '.sr' : alap;
+  if (!SUGO_VIDEOK.has(nev)) return '';
+  // Loaded only when the topic is opened; it then plays by itself, without sound (see sugoOldal).
+  return `<video class="sugo-video" src="videok/${nev}.mp4" muted playsinline loop controls preload="none"></video>`;
+}
+
 function sugoOldal() {
   const temak = SUGO.map(([ikonNev, cim, lepesek, cel], i) => {
     if (NYELV === 'sr' && SUGO_SR[i]) [cim, lepesek] = SUGO_SR[i];
@@ -1137,6 +1152,7 @@ function sugoOldal() {
         <span class="sugo-cim">${esc(cim)}</span>
         <span class="sugo-nyil">${ikon('caret-right')}</span>
       </summary>
+      ${sugoVideo(ikonNev)}
       <ol class="sugo-lepesek">${lepesek.map((l) => `<li>${l}</li>`).join('')}</ol>
       ${cel ? `<button class="halk-gomb balra" data-ugras="${cel}">${ikon('arrow-right')} Kipróbálom</button>` : ''}
     </details>`;
@@ -1146,6 +1162,13 @@ function sugoOldal() {
     <h1>Hogyan működik?</h1>
     <p class="alcim">Koppints egy témára, és megmutatja, hogyan kell.</p>
     <div class="sugo-lista">${temak}</div>`;
+  for (const d of app.querySelectorAll('details.sugo')) {
+    d.addEventListener('toggle', () => {
+      const video = d.querySelector('video');
+      if (!video) return;
+      if (d.open) video.play().catch(() => {}); else video.pause();
+    });
+  }
 }
 
 /* ---------- Family recipes ---------- */

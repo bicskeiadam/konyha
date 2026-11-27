@@ -57,6 +57,9 @@ self.addEventListener('fetch', (e) => {
   if (url.origin !== location.origin) return;
   // The app's own update check (verzioEllenoriz in app.js) must reach the server, not this cache.
   if (url.searchParams.has('friss')) return;
+  // Help videos are played in pieces (range requests), which the cache below can't store: the phone's
+  // ordinary web cache handles them, and they need internet the first time.
+  if (url.pathname.includes('/videok/')) return;
 
   // Answer instantly from the phone, refresh quietly in the background:
   // if a file really changed, the open app is told and reloads itself once (see ujVerzio in app.js).

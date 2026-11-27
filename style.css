@@ -585,6 +585,8 @@ button:active, .fajl-gomb:active { transform: scale(.98); }
 .sugo-lepesek li::marker { color: var(--fo-szoveg); font-weight: 800; }
 .sugo .halk-gomb { width: auto; margin: 4px 16px 16px; }
 @media (prefers-reduced-motion: reduce) { .sugo-nyil { transition: none; } }
+/* Screen recording: a whole phone screen, small enough to see the steps under it */
+.sugo-video { display: block; width: auto; max-width: calc(100% - 32px); max-height: 70vh; margin: 0 auto 14px; border-radius: var(--r); background: #000; }
 
 /* Search button in the header row, and the search field under it */
 .fejlec-sor { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
