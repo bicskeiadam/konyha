@@ -807,6 +807,7 @@ const SUGO = [
     'Koppints a <b>Receptek mutatása</b> gombra.',
     'Felül az van, amit most meg tudsz főzni. Alatta az, amihez csak 1-2 dolog hiányzik, és azt is kiírja, mi.',
     'A pipák megmaradnak. Legközelebb csak azt állítsd át, ami elfogyott vagy amit vettél.',
+    'Ha egy bizonyos receptet keresel, a receptlistán koppints fent a <b>nagyító</b> gombra, és írd be a nevét vagy egy hozzávalóját.',
   ], '#/itthon'],
   ['book-open-text', 'Főzés a recept alapján', [
     'Fent látod, mennyi kalória és fehérje van egy adagban és az egész fazékban.',
@@ -846,6 +847,7 @@ const SUGO = [
     'Itt van mindenki receptje, a legújabb felül.',
     'Minden receptnél látod, ki tette be.',
     'A <b>Csak az enyém</b> gombbal csak a saját receptjeidet látod.',
+    'Keresés: koppints fent a <b>nagyító</b> gombra, és írd be a recept nevét vagy egy hozzávalóját.',
   ], '#/receptjeim'],
   ['chart-bar', 'Tápértékek', [
     'Sorba rendezheted fehérje, kalória, zsír vagy szénhidrát szerint. Minden szám 100 grammra szól, nyersen.',
