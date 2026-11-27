@@ -569,3 +569,19 @@ button:active, .fajl-gomb:active { transform: scale(.98); }
 .meghivo-kod { margin: 0 0 6px; font-size: 44px; font-weight: 800; letter-spacing: .12em; font-variant-numeric: tabular-nums; color: var(--szoveg); user-select: all; }
 .meghivo-doboz .tipp { margin: 0; }
 .kod-mezo { text-transform: uppercase; letter-spacing: .1em; font-weight: 700; }
+
+/* Help page: one card per feature, opens to numbered steps */
+.sugo-lista { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.sugo { background: var(--felulet); border: 2px solid var(--szegely); border-radius: var(--r); }
+.sugo[open] { border-color: var(--fo); }
+.sugo summary { display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 10px 16px; cursor: pointer; list-style: none; }
+.sugo summary::-webkit-details-marker { display: none; }
+.sugo-ikon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--r-kicsi, 10px); background: var(--fo-halvany, rgba(29, 107, 66, .12)); color: var(--fo-szoveg); font-size: 24px; flex: none; }
+.sugo-cim { flex: 1; font-size: 20px; font-weight: 700; }
+.sugo-nyil { color: var(--halvany); font-size: 20px; transition: transform .15s ease; }
+.sugo[open] .sugo-nyil { transform: rotate(90deg); }
+.sugo-lepesek { margin: 0; padding: 0 18px 4px 44px; font-size: 18px; line-height: 1.45; }
+.sugo-lepesek li { margin-bottom: 10px; padding-left: 4px; }
+.sugo-lepesek li::marker { color: var(--fo-szoveg); font-weight: 800; }
+.sugo .halk-gomb { width: auto; margin: 4px 16px 16px; }
+@media (prefers-reduced-motion: reduce) { .sugo-nyil { transition: none; } }

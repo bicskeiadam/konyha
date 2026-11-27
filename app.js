@@ -755,8 +755,98 @@ function fomenu() {
         ${menuGomb('#/edessegek', 'cake', 'Édességek', tudodEdes ? `${tudodEdes} édességet meg tudsz csinálni` : 'Sütik, desszertek')}
         ${menuGomb('#/tapanyag', 'chart-bar', 'Tápértékek', 'Fehérje, kalória, zsír')}
       </nav>
+      <button class="halk-link" data-ugras="#/sugo">${ikon('question')} Hogyan működik?</button>
       <button class="halk-link" data-ugras="#/beallitasok">${ikon('gear-six')} ${csalad ? `Család és beállítások (${esc(csalad.nev)})` : 'Család és beállítások'}</button>
     </div>`;
+}
+
+/* ---------- Help: short how-tos for every feature ---------- */
+
+// [icon, title, steps, where "Kipróbálom" takes her]
+const SUGO = [
+  ['cooking-pot', 'Mit főzzek ma?', [
+    'A főmenüben koppints a <b>Mit főzzek?</b> gombra.',
+    'Pipáld be, ami itthon van. Só, bors, olaj mindig van, ezeket nem kell.',
+    'Koppints a <b>Receptek mutatása</b> gombra.',
+    'Felül az van, amit most meg tudsz főzni. Alatta az, amihez csak 1-2 dolog hiányzik, és azt is kiírja, mi.',
+    'A pipák megmaradnak. Legközelebb csak azt állítsd át, ami elfogyott vagy amit vettél.',
+  ], '#/itthon'],
+  ['book-open-text', 'Főzés a recept alapján', [
+    'Fent látod, mennyi kalória és fehérje van egy adagban és az egész fazékban.',
+    'A hozzávalóknál látod, mi van itthon és mi hiányzik.',
+    'Koppints egy lépésre, ha megvagy vele: kihúzza, így nem tévedsz el.',
+    'Amíg a recept nyitva van, a képernyő nem sötétül el.',
+    'A recept alján fényképet is tehetsz hozzá: <b>Fotózás</b> vagy <b>Galériából</b>.',
+  ], null],
+  ['cake', 'Édességek', [
+    'A főmenüben koppints az <b>Édességek</b> gombra.',
+    'Itt csak a sütéshez kellő dolgokat kell bepipálni: liszt, cukor, tojás, kakaó, gyümölcs.',
+    'Koppints az <b>Édességek mutatása</b> gombra.',
+    'A süteményeknél a tápérték egy szeletre vagy egy darabra szól.',
+  ], '#/edessegek'],
+  ['link-simple', 'Recept a netről', [
+    'A legegyszerűbb: nyisd meg a receptet a böngészőben, koppints a <b>Megosztás</b> gombra, és válaszd a <b>Konyhát</b>.',
+    'Vagy: <b>Családi receptek</b> → <b>Új recept</b> → <b>Linkből</b>, és illeszd be a recept címét.',
+    'A Konyha beolvassa a hozzávalókat, a lépéseket és a képet. A szerb recepteket magyarra fordítja.',
+    'Nézd át, írd be, hány adag, és koppints a <b>Mentés</b> gombra.',
+    'Ezekről az oldalakról működik: Nosalty, Mindmegette, Street Kitchen, Sóbors, Receptneked, Coolinarika, Recepti.com.',
+  ], '#/uj'],
+  ['camera', 'Recept képről vagy képernyőképről', [
+    'Instagramon vagy TikTokon készíts képernyőképet a recept leírásáról.',
+    'A képernyőképen koppints a <b>Megosztás</b> gombra, és válaszd a <b>Konyhát</b>.',
+    'Vagy: <b>Családi receptek</b> → <b>Új recept</b> → <b>Képről</b>. Szakácskönyvet vagy füzetet is lefotózhatsz.',
+    'Kb. 10 másodperc, amíg kiolvassa. Utána nézd át, és mentsd el.',
+    'Ha a Konyha nincs a Megosztás listában, használd a <b>Képről</b> gombot.',
+  ], '#/kepbol'],
+  ['note-pencil', 'Saját recept beírása', [
+    '<b>Családi receptek</b> → <b>Új recept</b> → <b>Kézzel írom be</b>.',
+    'Írd be a nevét, hány adag, és hogy étel vagy édesség.',
+    'A hozzávalókat a listából választod, mennyiséggel (g, dkg, dl, db, evőkanál). Így a kalóriát is kiszámolja.',
+    'Ami nincs a listában, beírhatod sima szövegként.',
+    'Nyugodtan félbehagyhatod: amit beírtál, megmarad.',
+  ], '#/kezi'],
+  ['users-three', 'Családi receptek', [
+    'Itt van mindenki receptje, a legújabb felül.',
+    'Minden receptnél látod, ki tette be.',
+    'A <b>Csak az enyém</b> gombbal csak a saját receptjeidet látod.',
+  ], '#/receptjeim'],
+  ['chart-bar', 'Tápértékek', [
+    'Sorba rendezheted fehérje, kalória, zsír vagy szénhidrát szerint. Minden szám 100 grammra szól, nyersen.',
+    'Koppints egy hozzávalóra, ha pontosítanád a számokat.',
+    'Új hozzávaló: olvasd be a <b>vonalkódot</b>, vagy fotózd le a csomagoláson a tápérték-táblázatot.',
+    'Ha egy vonalkódot még nem ismer, fotózd le a táblázatot. Legközelebb már az egész család telefonja felismeri.',
+    'Ha nincs csomagolás (hentes, piac), koppints a <b>Nincs címkéje</b> gombra, és megbecsüli.',
+  ], '#/tapanyag'],
+  ['share-network', 'A család összekötése', [
+    'Meghívás: <b>Család és beállítások</b> → <b>Meghívó kód</b>. Mondd meg vagy küldd el a 6 jelű kódot. Egy napig jó.',
+    'Csatlakozás a másik telefonon: <b>Család és beállítások</b> → írd be a neved és a kódot → <b>Csatlakozom</b>.',
+    'Ha még senki nem indította el, koppints az <b>Új családot indítok</b> gombra.',
+    'Amit bárki hozzáad, mindenkinél megjelenik. A <b>Mi változott?</b> listában látod, ki mit csinált.',
+  ], '#/beallitasok'],
+  ['wifi-slash', 'Internet nélkül is', [
+    'Minden recept a telefonon van, wifi nélkül is működik.',
+    'Internet csak a beolvasáshoz (link, kép, vonalkód) és a család frissítéséhez kell.',
+    'Amit internet nélkül adsz hozzá, később magától elküldi a családnak.',
+    'Biztonsági mentés: <b>Család és beállítások</b> → <b>Mentés fájlba</b>.',
+  ], null],
+];
+
+function sugoOldal() {
+  const temak = SUGO.map(([ikonNev, cim, lepesek, cel]) => `
+    <details class="sugo">
+      <summary>
+        <span class="sugo-ikon">${ikon(ikonNev)}</span>
+        <span class="sugo-cim">${esc(cim)}</span>
+        <span class="sugo-nyil">${ikon('caret-right')}</span>
+      </summary>
+      <ol class="sugo-lepesek">${lepesek.map((l) => `<li>${l}</li>`).join('')}</ol>
+      ${cel ? `<button class="halk-gomb balra" data-ugras="${cel}">${ikon('arrow-right')} Kipróbálom</button>` : ''}
+    </details>`).join('');
+  app.innerHTML = `
+    ${vissza()}
+    <h1>Hogyan működik?</h1>
+    <p class="alcim">Koppints egy témára, és megmutatja, hogyan kell.</p>
+    <div class="sugo-lista">${temak}</div>`;
 }
 
 /* ---------- Family recipes ---------- */
@@ -1803,6 +1893,7 @@ function rajzol() {
   else if (ut === '#/receptjeim') receptjeimOldal();
   else if (ut === '#/uj-recept') ujReceptValasztoOldal();
   else if (ut === '#/beallitasok') beallitasokOldal();
+  else if (ut === '#/sugo') sugoOldal();
   else if (ut.startsWith('#/csatlakozas/')) csatlakozasOldal(decodeURIComponent(ut.slice(14)));
   else if (ut.startsWith('#/kepbol')) {
     kepbolOldal();
