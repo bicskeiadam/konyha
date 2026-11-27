@@ -50,13 +50,22 @@ export default {
       const termek = await vonalkodKeres(kod);
       return termek ? valasz(termek) : valasz({ hiba: 'nincs' }, 404);
     }
+    if (ut === '/meghivo/bevalt' && keres.method === 'POST') {
+      let test;
+      try { test = await keres.json(); } catch { return valasz({ hiba: 'rossz-keres' }, 400); }
+      const eredmeny = await meghivoBevalt(env.DB, test.kod, keres.headers.get('cf-connecting-ip') || '');
+      return eredmeny.kod ? valasz(eredmeny) : valasz(eredmeny, eredmeny.hiba === 'tul-sok' ? 429 : 404);
+    }
     if (ut === '/csalad-uj' && keres.method === 'POST') {
       const kod = await ujCsalad(env.DB);
       return kod ? valasz({ kod }) : valasz({ hiba: 'tul-sok' }, 429);
     }
-    if (ut === '/szinkron' || ut === '/kep' || ut === '/naplo') {
+    if (ut === '/szinkron' || ut === '/kep' || ut === '/naplo' || ut === '/meghivo') {
       const csalad = await csaladAzonosito(keres.headers.get('x-csalad'), env);
       if (!csalad) return valasz({ hiba: 'ismeretlen-csalad' }, 403);
+      if (ut === '/meghivo' && keres.method === 'POST') {
+        return valasz(await meghivoKeszit(env.DB, csalad, keres.headers.get('x-csalad').trim().toLowerCase()));
+      }
       if (ut === '/szinkron' && keres.method === 'POST') {
         let test;
         try { test = await keres.json(); } catch { return valasz({ hiba: 'rossz-keres' }, 400); }
@@ -494,7 +503,8 @@ const TIPUSOK = new Set(['recept', 'hozzavalo', 'feluliras', 'kep']);
 const MAX_VALTOZAS = 50;
 
 // A family code is accepted if it is in the CSALAD_KODOK secret or was made with /csalad-uj.
-// The database only ever sees a hash of the code, never the code itself.
+// Families are stored under a hash of the code; the code itself is only kept inside a short
+// invite (see meghivoKeszit) for the day it is valid.
 async function kodHash(kod) {
   const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('konyha:' + kod));
   return [...new Uint8Array(hash)].slice(0, 12).map((b) => b.toString(16).padStart(2, '0')).join('');
@@ -562,6 +572,48 @@ async function szinkron(db, csalad, test) {
     elemek: results.map((r) => ({ ...r, adat: r.adat ? JSON.parse(r.adat) : null, torolve: Boolean(r.torolve) })),
     tobb: valtozasok.length < (Array.isArray(test.valtozasok) ? test.valtozasok.length : 0),
   };
+}
+
+/* ---------- short invite codes: "K7M-4PX" instead of a long link ---------- */
+
+// No 0/O, 1/I/L: the code is read out loud or typed off another phone's screen.
+const MEGHIVO_BETUK = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const MEGHIVO_ERVENYES = 24 * 3600_000;
+// 31^6 ≈ 887 million codes, valid for a day, and a phone that keeps guessing wrong is stopped.
+const MAX_ROSSZ_PROBA_ORANKENT = 20;
+
+// Returns the family's current invite if it has more than an hour left, otherwise makes a new one.
+async function meghivoKeszit(db, csalad, csaladKod) {
+  const most = Date.now();
+  await db.prepare('DELETE FROM meghivok WHERE lejar < ?').bind(most).run();
+  const meglevo = await db.prepare('SELECT kod, lejar FROM meghivok WHERE csalad = ? AND lejar > ? ORDER BY lejar DESC LIMIT 1')
+    .bind(csalad, most + 3600_000).first();
+  if (meglevo) return meglevo;
+  for (let proba = 0; proba < 5; proba++) {
+    const kod = [...crypto.getRandomValues(new Uint8Array(6))].map((b) => MEGHIVO_BETUK[b % MEGHIVO_BETUK.length]).join('');
+    const lejar = most + MEGHIVO_ERVENYES;
+    const { meta } = await db.prepare('INSERT OR IGNORE INTO meghivok (kod, csalad, csalad_kod, lejar) VALUES (?, ?, ?, ?)')
+      .bind(kod, csalad, csaladKod, lejar).run();
+    if (meta.changes) return { kod, lejar };
+  }
+  return { hiba: 'nem-sikerult' };
+}
+
+async function meghivoBevalt(db, beirt, ip) {
+  const most = Date.now();
+  const ipHash = (await kodHash('ip:' + ip)).slice(0, 16);
+  const { rossz } = await db.prepare('SELECT COUNT(*) AS rossz FROM rossz_probak WHERE ip = ? AND ido > ?').bind(ipHash, most - 3600_000).first();
+  if (rossz >= MAX_ROSSZ_PROBA_ORANKENT) return { hiba: 'tul-sok' };
+  const kod = String(beirt || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const sor = /^[A-Z0-9]{6}$/.test(kod)
+    ? await db.prepare('SELECT csalad_kod FROM meghivok WHERE kod = ? AND lejar > ?').bind(kod, most).first()
+    : null;
+  if (sor) return { kod: sor.csalad_kod };
+  await db.batch([
+    db.prepare('DELETE FROM rossz_probak WHERE ido < ?').bind(most - 3600_000),
+    db.prepare('INSERT INTO rossz_probak (ip, ido) VALUES (?, ?)').bind(ipHash, most),
+  ]);
+  return { hiba: 'nincs' };
 }
 
 /* ---------- barcodes (Open Food Facts) ---------- */

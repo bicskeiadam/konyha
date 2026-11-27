@@ -32,3 +32,19 @@ CREATE TABLE IF NOT EXISTS csaladok (
   letrehozva INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS csaladok_ido ON csaladok (letrehozva);
+
+-- Short invite codes ("K7M4PX"), valid for a day. They hold the family code so a new phone can join.
+CREATE TABLE IF NOT EXISTS meghivok (
+  kod TEXT PRIMARY KEY,
+  csalad TEXT NOT NULL,
+  csalad_kod TEXT NOT NULL,
+  lejar INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS meghivok_csalad ON meghivok (csalad, lejar);
+
+-- Wrong invite codes per phone (hashed IP), to stop guessing.
+CREATE TABLE IF NOT EXISTS rossz_probak (
+  ip TEXT NOT NULL,
+  ido INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS rossz_probak_ip ON rossz_probak (ip, ido);

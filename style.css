@@ -563,3 +563,9 @@ button:active, .fajl-gomb:active { transform: scale(.98); }
 .szkenner-szoveg { position: relative; color: #fff; font-size: 22px; font-weight: 700; text-align: center; margin: 0 0 18px; }
 .szkenner-megse { position: relative; background: #fff; color: #17201b; }
 .szkenner-megse:active { background: #e3e8e4; }
+
+/* Invite code: big, spaced letters so it can be read out loud */
+.meghivo-doboz { margin-top: 12px; padding: 18px; border-radius: var(--r); background: var(--felulet); border: 2px solid var(--fo); text-align: center; }
+.meghivo-kod { margin: 0 0 6px; font-size: 44px; font-weight: 800; letter-spacing: .12em; font-variant-numeric: tabular-nums; color: var(--szoveg); user-select: all; }
+.meghivo-doboz .tipp { margin: 0; }
+.kod-mezo { text-transform: uppercase; letter-spacing: .1em; font-weight: 700; }

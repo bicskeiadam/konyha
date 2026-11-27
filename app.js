@@ -796,8 +796,45 @@ function ujReceptValasztoOldal() {
 
 let naploAdat = null;
 
-function meghivoLink() {
-  return `${location.origin}${location.pathname}#/csatlakozas/${encodeURIComponent(csalad.kod)}`;
+// The short invite code ("K7M4PX") shown on this phone, valid for a day: { kod, lejar }.
+let meghivo = null;
+let meghivoAllapot = '';
+
+function meghivoSzoveg(kod) {
+  return `${kod.slice(0, 3)}-${kod.slice(3)}`;
+}
+
+async function meghivoKeres() {
+  if (!csalad) return;
+  if (!navigator.onLine) { meghivoAllapot = 'Ehhez internet kell.'; return rajzolMarad(); }
+  meghivoAllapot = 'keszul';
+  rajzolMarad();
+  try {
+    const v = await fetch(OLVASO_URL + 'meghivo', { method: 'POST', headers: { 'x-csalad': csalad.kod } });
+    const valasz = await v.json();
+    if (!v.ok || !valasz.kod) throw new Error();
+    meghivo = valasz;
+    meghivoAllapot = '';
+  } catch (_) {
+    meghivoAllapot = 'Most nem sikerült kódot kérni. Próbáld újra kicsit később.';
+  }
+  if (location.hash === '#/beallitasok') rajzolMarad();
+}
+
+function meghivoResz() {
+  if (meghivo && meghivo.lejar < Date.now()) meghivo = null;
+  if (meghivo) {
+    return `
+      <div class="meghivo-doboz">
+        <p class="meghivo-kod" aria-label="Meghívó kód">${esc(meghivoSzoveg(meghivo.kod))}</p>
+        <p class="tipp">A másik telefonon: Konyha → Család és beállítások → írja be ezt a kódot. ${idoSzoveg(meghivo.lejar)}-ig érvényes.</p>
+      </div>
+      <button class="halk-gomb balra" data-meghivo-kuld>${ikon('share-network')} Kód elküldése üzenetben</button>`;
+  }
+  return `
+    <p class="tipp">Kérj egy rövid kódot, és mondd meg vagy küldd el annak, akit meghívsz.</p>
+    ${meghivoAllapot && meghivoAllapot !== 'keszul' ? `<p class="uzenet hiba-uzenet">${esc(meghivoAllapot)}</p>` : ''}
+    <button class="nagy-gomb kozepen" data-meghivo-kod ${meghivoAllapot === 'keszul' ? 'disabled' : ''}>${ikon('users-three')}<span class="gomb-szoveg">${meghivoAllapot === 'keszul' ? 'Kód készül…' : 'Meghívó kód'}</span></button>`;
 }
 
 function idoSzoveg(t) {
@@ -818,12 +855,12 @@ function beallitasokOldal() {
       <label class="cimke" for="c-nev">Hogy hívnak?</label>
       <input id="c-nev" class="mezo" autocomplete="given-name" placeholder="pl. Mama, Anna" value="${esc(nevPiszkozat)}">
       <h2>Új család</h2>
-      <p class="tipp">Ha még senki nem indította el a család receptkönyvét, indítsd el te. Utána egy linket küldesz a többieknek.</p>
+      <p class="tipp">Ha még senki nem indította el a család receptkönyvét, indítsd el te. Utána kapsz egy rövid kódot, amit megadsz a többieknek.</p>
       <button class="nagy-gomb kozepen" data-csalad-uj>${ikon('plus')}<span class="gomb-szoveg">Új családot indítok</span></button>
-      <h2>Már van családi kódod?</h2>
-      <p class="tipp">A legegyszerűbb: nyisd meg ezen a telefonon a meghívó linket, amit valaki a családból küldött. Vagy írd be a kódot:</p>
-      <label class="cimke" for="c-kod">Családi kód</label>
-      <input id="c-kod" class="mezo" autocomplete="off" autocapitalize="none" spellcheck="false">
+      <h2>Kaptál meghívó kódot?</h2>
+      <p class="tipp">Kérj egy kódot attól, aki már bent van: neki a Család és beállítások oldalon van a Meghívó kód gomb.</p>
+      <label class="cimke" for="c-kod">Meghívó kód</label>
+      <input id="c-kod" class="mezo kod-mezo" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="pl. K7M-4PX">
       <button class="nagy-gomb kozepen" data-csatlakozas>${ikon('users-three')}<span class="gomb-szoveg">Csatlakozom</span></button>
       ${mentesResz()}`;
     return;
@@ -844,13 +881,13 @@ function beallitasokOldal() {
     <p class="tipp">${kuldendo.length ? `${kuldendo.length} változás vár küldésre. ` : ''}${utolso ? `Utoljára frissítve: ${idoSzoveg(utolso)}.` : 'Még nem volt frissítés.'}</p>
     ${utolsoSzinkronHiba ? `<p class="uzenet hiba-uzenet">${esc(utolsoSzinkronHiba)}</p>` : ''}
     <button class="halk-gomb balra" data-szinkron>${ikon('arrows-clockwise')} Frissítés most</button>
-    <button class="halk-gomb balra" data-meghivo>${ikon('share-network')} Meghívó link küldése</button>
-    <p class="tipp">A meghívó linket a család többi tagjának küldd el. Aki megnyitja, csatlakozik a közös receptkönyvhöz.</p>
+    <h2>Családtag meghívása</h2>
+    ${meghivoResz()}
     <h2>Mi változott?</h2>
     ${naplo}
     ${mentesResz()}
     <h2>Kilépés</h2>
-    <p class="tipp">Ha kilépsz, a receptek ezen a telefonon maradnak, de nem frissülnek többé. A meghívó linkkel bármikor visszaléphetsz.</p>
+    <p class="tipp">Ha kilépsz, a receptek ezen a telefonon maradnak, de nem frissülnek többé. Egy új meghívó kóddal bármikor visszaléphetsz.</p>
     <button class="halk-gomb balra veszely" data-kilepes>${ikon('x')} Kilépés a családból</button>`;
   if (!naploAdat) naploBetolt();
 }
@@ -897,12 +934,13 @@ function csatlakozasOldal(kod) {
     ${csatlakozoUrlap(kod)}`;
 }
 
+// Joins with a 6-letter invite code, or with the long family code (old invite links still work).
 async function csatlakozas(gomb, uj = false) {
   let kod = (document.getElementById('c-kod')?.value || '').trim().toLowerCase();
   const nev = (document.getElementById('c-nev')?.value || '').trim();
   nevPiszkozat = nev;
   if (!nev) { csatlakozasHiba = 'Írd be a neved, hogy lássák, ki mit tett hozzá.'; return rajzolMarad(); }
-  if (!uj && !kod) { csatlakozasHiba = 'Írd be a családi kódot.'; return rajzolMarad(); }
+  if (!uj && !kod) { csatlakozasHiba = 'Írd be a meghívó kódot.'; return rajzolMarad(); }
   if (!navigator.onLine) { csatlakozasHiba = 'Ehhez internet kell.'; return rajzolMarad(); }
   gomb.disabled = true;
   try {
@@ -910,11 +948,19 @@ async function csatlakozas(gomb, uj = false) {
       const v = await fetch(OLVASO_URL + 'csalad-uj', { method: 'POST' });
       if (!v.ok) throw new Error();
       kod = (await v.json()).kod;
+    } else if (kod.replace(/[^a-z0-9]/g, '').length === 6) {
+      const v = await fetch(OLVASO_URL + 'meghivo/bevalt', {
+        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kod }),
+      });
+      if (v.status === 404) { csatlakozasHiba = 'Ez a kód nem jó, vagy már lejárt. Nézd meg újra, vagy kérj új kódot.'; return rajzolMarad(); }
+      if (v.status === 429) { csatlakozasHiba = 'Túl sok rossz kód. Várj egy órát, és próbáld újra.'; return rajzolMarad(); }
+      if (!v.ok) throw new Error();
+      kod = (await v.json()).kod;
     }
     const v = await fetch(OLVASO_URL + 'szinkron', {
       method: 'POST', headers: { 'content-type': 'application/json', 'x-csalad': kod }, body: JSON.stringify({ nev, ota: 0, valtozasok: [] }),
     });
-    if (v.status === 403) { csatlakozasHiba = 'Ez a kód nem jó. Nézd meg újra, vagy kérj új meghívó linket.'; return rajzolMarad(); }
+    if (v.status === 403) { csatlakozasHiba = 'Ez a kód nem jó. Nézd meg újra, vagy kérj új meghívó kódot.'; return rajzolMarad(); }
     if (!v.ok) throw new Error();
   } catch (_) {
     csatlakozasHiba = 'Most nem sikerült elérni a szolgáltatást. Próbáld újra kicsit később.';
@@ -924,9 +970,11 @@ async function csatlakozas(gomb, uj = false) {
   csalad = { kod, nev };
   localStorage.setItem(CSALAD_KULCS, JSON.stringify(csalad));
   localStorage.setItem(OTA_KULCS, '0');
+  meghivo = null;
   mindentJelol();
   await szinkronizal();
   location.replace(uj ? '#/beallitasok' : '#/receptjeim');
+  if (uj) meghivoKeres();
 }
 
 // Camera + gallery buttons. "cel" says where the photo goes: kezi, import, or recept:<id>.
@@ -1818,6 +1866,7 @@ app.addEventListener('click', async (e) => {
       localStorage.removeItem(CSALAD_KULCS);
       localStorage.removeItem(OTA_KULCS);
       localStorage.removeItem(KULDENDO_KULCS);
+      meghivo = null;
       location.replace('#/');
     }
   } else if ('nevMent' in gomb.dataset) {
@@ -1828,13 +1877,16 @@ app.addEventListener('click', async (e) => {
     await szinkronizal();
     naploAdat = null;
     rajzolMarad();
-  } else if ('meghivo' in gomb.dataset) {
-    const link = meghivoLink();
+  } else if ('meghivoKod' in gomb.dataset) {
+    await meghivoKeres();
+  } else if ('meghivoKuld' in gomb.dataset && meghivo) {
+    const kod = meghivoSzoveg(meghivo.kod);
+    const szoveg = `Gyere a családi receptkönyvbe! Nyisd meg a Konyhát (${location.origin}${location.pathname}), menj a Család és beállítások oldalra, és írd be ezt a kódot: ${kod}`;
     if (navigator.share) {
-      navigator.share({ title: 'Konyha', text: 'Csatlakozz a közös családi receptkönyvhöz:', url: link }).catch(() => {});
+      navigator.share({ title: 'Konyha meghívó', text: szoveg }).catch(() => {});
     } else {
-      await navigator.clipboard.writeText(link).catch(() => {});
-      alert('A meghívó link a vágólapra került. Küldd el üzenetben.');
+      await navigator.clipboard.writeText(szoveg).catch(() => {});
+      alert('A meghívó a vágólapra került. Küldd el üzenetben.');
     }
   } else if ('lepes' in gomb.dataset) {
     gomb.setAttribute('aria-pressed', gomb.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
