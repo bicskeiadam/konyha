@@ -367,18 +367,50 @@ function szkennerBezar() {
   szkenner = null;
 }
 
-async function vonalkodOlvas() {
-  if (!('BarcodeDetector' in window)) {
-    hFormInit(null);
-    hForm.allapot = 'hiba';
-    hForm.uzenet = 'Ez a telefon nem tud vonalkódot olvasni. Fotózd le inkább a tápérték-táblázatot.';
-    return rajzolMarad();
+const VONALKOD_FORMATUMOK = ['ean_13', 'ean_8', 'upc_a', 'upc_e'];
+
+function scriptBetolt(src) {
+  return new Promise((kesz, hiba) => {
+    const el = document.createElement('script');
+    el.src = src;
+    el.onload = kesz;
+    el.onerror = hiba;
+    document.head.appendChild(el);
+  });
+}
+
+// Android Chrome reads barcodes by itself. iPhones (Safari) can't, so there the reader in lib/ is
+// loaded the first time it is needed (~1 MB, kept on the phone afterwards by the service worker).
+async function vonalkodOlvaso() {
+  if ('BarcodeDetector' in window) {
+    try {
+      const tud = await window.BarcodeDetector.getSupportedFormats();
+      if (tud.includes('ean_13')) return new window.BarcodeDetector({ formats: VONALKOD_FORMATUMOK });
+    } catch (_) { /* fall through to the bundled reader */ }
   }
+  if (!window.BarcodeDetectionAPI) await scriptBetolt('lib/barcode-detector.js');
+  const api = window.BarcodeDetectionAPI;
+  await api.prepareZXingModule({
+    overrides: { locateFile: (path, prefix) => (path.endsWith('.wasm') ? new URL('lib/' + path, location.href).href : prefix + path) },
+    fireImmediately: true,
+  });
+  return new api.BarcodeDetector({ formats: VONALKOD_FORMATUMOK });
+}
+
+function vonalkodHiba(szoveg) {
+  szkennerBezar();
+  hFormInit(null);
+  hForm.allapot = 'hiba';
+  hForm.uzenet = szoveg;
+  rajzolMarad();
+}
+
+async function vonalkodOlvas() {
   szkennerBezar();
   const elem = document.createElement('div');
   elem.className = 'szkenner';
   elem.innerHTML = `
-    <video playsinline muted></video>
+    <video playsinline muted autoplay></video>
     <div class="szkenner-keret" aria-hidden="true"></div>
     <p class="szkenner-szoveg">Tartsd a vonalkódot a keretbe</p>
     <button class="nagy-gomb szkenner-megse">${ikon('x')}<span class="gomb-szoveg">Mégse</span></button>`;
@@ -386,29 +418,43 @@ async function vonalkodOlvas() {
   document.body.appendChild(elem);
   const sajat = { elem, fut: true, folyam: null };
   szkenner = sajat;
+
+  // The camera is asked for straight away (iOS wants that right after the tap); the reader loads meanwhile.
+  const olvasoIgeret = vonalkodOlvaso();
+  olvasoIgeret.catch(() => {});
   try {
+    if (!navigator.mediaDevices?.getUserMedia) throw new Error('nincs-kamera');
     sajat.folyam = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 } }, audio: false });
     if (!sajat.fut) { sajat.folyam.getTracks().forEach((t) => t.stop()); return; }
     const video = elem.querySelector('video');
     video.srcObject = sajat.folyam;
     await video.play();
-    const olvaso = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] });
-    while (sajat.fut) {
-      const talalat = (await olvaso.detect(video).catch(() => [])).map((b) => b.rawValue).find(vonalkodJo);
-      if (talalat && sajat.fut) {
-        navigator.vibrate?.(60);
-        szkennerBezar();
-        return vonalkodTalalt(talalat);
-      }
-      await new Promise((r) => setTimeout(r, 200));
-    }
   } catch (_) {
-    if (!sajat.fut) return;
-    szkennerBezar();
-    hFormInit(null);
-    hForm.allapot = 'hiba';
-    hForm.uzenet = 'Nem sikerült elindítani a kamerát. Engedd meg a kamera használatát, vagy fotózd le a tápérték-táblázatot.';
-    rajzolMarad();
+    if (sajat.fut) vonalkodHiba('Nem sikerült elindítani a kamerát. Engedd meg a kamera használatát, vagy fotózd le a tápérték-táblázatot.');
+    return;
+  }
+
+  let olvaso;
+  try {
+    olvaso = await olvasoIgeret;
+  } catch (_) {
+    if (sajat.fut) {
+      vonalkodHiba(navigator.onLine
+        ? 'Nem sikerült betölteni a vonalkód-olvasót. Próbáld újra, vagy fotózd le a tápérték-táblázatot.'
+        : 'A vonalkód-olvasó első betöltéséhez internet kell. Addig fotózd le a tápérték-táblázatot.');
+    }
+    return;
+  }
+
+  const video = elem.querySelector('video');
+  while (sajat.fut) {
+    const talalat = (await olvaso.detect(video).catch(() => [])).map((b) => b.rawValue).find(vonalkodJo);
+    if (talalat && sajat.fut) {
+      navigator.vibrate?.(60);
+      szkennerBezar();
+      return vonalkodTalalt(talalat);
+    }
+    await new Promise((r) => setTimeout(r, 150));
   }
 }
 
