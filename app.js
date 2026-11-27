@@ -1057,6 +1057,12 @@ function fomenu() {
 
 // [icon, title, steps, where "Kipróbálom" takes her]
 const SUGO = [
+  ['download-simple', 'A Konyha a telefonodon', [
+    'Tedd ki a Konyhát a kezdőképernyőre, így rendes alkalmazásként nyílik meg. Ezt csak egyszer kell.',
+    '<b>iPhone:</b> nyisd meg a Konyhát a Safariban, koppints a <b>Megosztás</b> gombra, és válaszd a <b>Főképernyőhöz adás</b> sort (lehet, hogy lejjebb kell görgetni). Utána koppints a <b>Hozzáadás</b> gombra.',
+    '<b>Android:</b> nyisd meg a Chrome-ban, koppints a jobb felső sarokban a <b>⋮</b> gombra, és válaszd az <b>Alkalmazás telepítése</b> vagy a <b>Hozzáadás a kezdőképernyőhöz</b> sort.',
+    'Ezután a Konyha ott van a többi alkalmazás között, és internet nélkül is megnyílik.',
+  ], null],
   ['cooking-pot', 'Mit főzzek ma?', [
     'A főmenü tetején mindig van 3 ötlet, mit főzhetnél ma abból, ami itthon van. Egész nap ugyanaz marad, másnap újat mutat. Ha egyik sem tetszik, koppints a <b>Másik ötlet</b> gombra.',
     'A főmenüben koppints a <b>Mit főzzek?</b> gombra.',
@@ -1081,6 +1087,7 @@ const SUGO = [
   ], '#/edessegek'],
   ['link-simple', 'Recept a netről', [
     'A legegyszerűbb: nyisd meg a receptet a böngészőben, koppints a <b>Megosztás</b> gombra, és válaszd a <b>Konyhát</b>.',
+    'iPhone-on a Konyha nincs a Megosztás listában: másold ki a recept linkjét, és illeszd be a Konyhában.',
     'Vagy: <b>Családi receptek</b> → <b>Új recept</b> → <b>Linkből</b>, és illeszd be a recept címét.',
     'A Konyha beolvassa a hozzávalókat, a lépéseket és a képet. A szerb recepteket magyarra fordítja.',
     'Nézd át, írd be, hány adag, és koppints a <b>Mentés</b> gombra.',
@@ -1131,6 +1138,7 @@ const SUGO = [
 // Files go in videok/ as <topic icon>-android.mp4 and <topic icon>-ios.mp4 (a Serbian one: ...-android.sr.mp4),
 // and each file's name (without .mp4) is listed here. A topic without a video shows only its steps.
 const SUGO_VIDEOK = new Set([
+  'download-simple-ios', 'link-simple-ios', 'camera-ios',
 ]);
 const IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 

@@ -468,6 +468,12 @@ if (NYELV === 'sr') {
 /* ---------- Help page in Serbian (same order as SUGO in app.js) ---------- */
 
 const SUGO_SR = [
+  ['Konyha na telefonu', [
+    'Stavi Konyhu na početni ekran, pa se otvara kao prava aplikacija. To treba uraditi samo jednom.',
+    '<b>iPhone:</b> otvori Konyhu u Safariju, dodirni <b>Podeli</b> i izaberi <b>Dodaj na početni ekran</b> (možda treba skrolovati naniže). Zatim dodirni <b>Dodaj</b>.',
+    '<b>Android:</b> otvori je u Chrome-u, dodirni <b>⋮</b> u gornjem desnom uglu i izaberi <b>Instaliraj aplikaciju</b> ili <b>Dodaj na početni ekran</b>.',
+    'Posle toga je Konyha među ostalim aplikacijama i otvara se i bez interneta.',
+  ]],
   ['Šta da kuvam danas?', [
     'Na vrhu glavnog menija uvek su 3 ideje šta možeš danas da skuvaš od onoga što imaš kod kuće. Ceo dan ostaju iste, sutra dolaze nove. Ako ti se nijedna ne sviđa, dodirni <b>Druga ideja</b>.',
     'U glavnom meniju dodirni <b>Šta da kuvam?</b>.',
@@ -492,6 +498,7 @@ const SUGO_SR = [
   ]],
   ['Recept s interneta', [
     'Najlakše: otvori recept u pregledaču, dodirni <b>Podeli</b> i izaberi <b>Konyha</b>.',
+    'Na iPhone-u Konyha nije na listi za deljenje: kopiraj link recepta i nalepi ga u Konyhi.',
     'Ili: <b>Porodični recepti</b> → <b>Novi recept</b> → <b>Iz linka</b>, pa nalepi adresu recepta.',
     'Konyha učitava sastojke, korake i sliku. Recept se čuva za celu porodicu i prikazuje se na tvom jeziku.',
     'Proveri, upiši broj porcija i dodirni <b>Dodaj u recepte</b>.',
