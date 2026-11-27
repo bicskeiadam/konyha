@@ -791,12 +791,13 @@ function ikon(nev) {
 }
 
 // The header row. On recipe lists it also has a search button that opens a search field under it.
-function vissza(keresheto = false) {
+function vissza(keresheto = false, jobbra = '') {
   const nyitva = keresheto && keresesek[location.hash] != null;
   return `
     <div class="fejlec">
       <div class="fejlec-sor">
         <button class="vissza" data-vissza>${ikon('caret-left')} Vissza</button>
+        ${jobbra}
         ${keresheto ? `<button class="fejlec-gomb" data-kereses-nyit aria-label="Keresés" aria-pressed="${nyitva}">${ikon(nyitva ? 'x' : 'magnifying-glass')}</button>` : ''}
       </div>
       ${nyitva ? `<input class="mezo kereso-mezo" type="search" data-recept-kereso value="${esc(keresesek[location.hash])}"
@@ -1132,23 +1133,18 @@ const NAPLO_TIPUS = { recept: 'receptet', kep: 'fényképet', hozzavalo: 'hozzá
 function nyelvKapcsolo() {
   const sr = NYELV === 'sr';
   return `
-    <div class="nyelv-sor">
-      <span class="nyelv-felirat">Nyelv · Jezik</span>
       <button class="nyelv-kapcsolo" data-nyelv role="switch" aria-checked="${sr}" aria-label="Magyar / Srpski">
         <span class="nyelv-gomb" aria-hidden="true"></span>
         <span class="zaszlo hu" aria-hidden="true"><svg viewBox="0 0 3 3" preserveAspectRatio="none"><rect width="3" height="1" fill="#cd2a3e"/><rect y="1" width="3" height="1" fill="#fff"/><rect y="2" width="3" height="1" fill="#436f4d"/></svg></span>
         <span class="zaszlo sr" aria-hidden="true"><svg viewBox="0 0 3 3" preserveAspectRatio="none"><rect width="3" height="1" fill="#c6363c"/><rect y="1" width="3" height="1" fill="#0c4076"/><rect y="2" width="3" height="1" fill="#fff"/></svg></span>
-      </button>
-      <span class="nyelv-nev">${sr ? 'Srpski' : 'Magyar'}</span>
-    </div>`;
+      </button>`;
 }
 
 function beallitasokOldal() {
   if (!csalad) {
     app.innerHTML = `
-      ${vissza()}
+      ${vissza(false, nyelvKapcsolo())}
       <h1>Család és beállítások</h1>
-      ${nyelvKapcsolo()}
       <h2>Közös családi receptkönyv</h2>
       <p>Ha összekötöd a család telefonjait, amit bárki hozzáad, mindenkinél megjelenik.</p>
       ${csatlakozasHiba ? `<p class="uzenet hiba-uzenet">${esc(csatlakozasHiba)}</p>` : ''}
@@ -1172,9 +1168,8 @@ function beallitasokOldal() {
     : '<p class="tipp">Betöltöm…</p>';
   const utolso = +(localStorage.getItem(OTA_KULCS) || 0);
   app.innerHTML = `
-    ${vissza()}
+    ${vissza(false, nyelvKapcsolo())}
     <h1>Család és beállítások</h1>
-    ${nyelvKapcsolo()}
     <label class="cimke" for="b-nev">A neved ezen a telefonon</label>
     <input id="b-nev" class="mezo" value="${esc(csalad.nev)}" autocomplete="off">
     <button class="halk-gomb balra" data-nev-ment>${ikon('check')} Név mentése</button>

@@ -625,9 +625,7 @@ button:active, .fajl-gomb:active { transform: scale(.98); }
 .uj-verzio button { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 8px 16px; border: 0; border-radius: 10px; background: #fff; color: #17201b; font-size: 18px; font-weight: 700; }
 
 
-/* Language switch: two round flags on a track, a white knob slides under the chosen one */
-.nyelv-sor { display: flex; align-items: center; gap: 14px; margin: 6px 0 18px; }
-.nyelv-felirat { font-size: 17px; font-weight: 600; color: var(--halvany); }
+/* Language switch (right end of the back-button row): two round flags, a white knob slides under the chosen one */
 .nyelv-kapcsolo {
   position: relative;
   display: grid;
@@ -667,5 +665,4 @@ button:active, .fajl-gomb:active { transform: scale(.98); }
 .zaszlo svg { display: block; width: 100%; height: 100%; }
 .nyelv-kapcsolo[aria-checked="false"] .zaszlo.hu,
 .nyelv-kapcsolo[aria-checked="true"] .zaszlo.sr { opacity: 1; filter: none; }
-.nyelv-nev { font-size: 19px; font-weight: 700; }
 @media (prefers-reduced-motion: reduce) { .nyelv-gomb, .zaszlo { transition: none; } }
