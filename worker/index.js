@@ -50,14 +50,23 @@ export default {
       const termek = await vonalkodKeres(kod);
       return termek ? valasz(termek) : valasz({ hiba: 'nincs' }, 404);
     }
+    if (ut === '/grammok' && keres.method === 'POST') {
+      if (!env.AI) return valasz({ hiba: 'nincs-ai' }, 500);
+      let test;
+      try { test = await keres.json(); } catch { return valasz({ hiba: 'rossz-keres' }, 400); }
+      const sorok = Array.isArray(test.sorok) ? test.sorok.slice(0, 80).map((x) => String(x).slice(0, 300)) : [];
+      if (!sorok.length) return valasz({ hiba: 'rossz-keres' }, 400);
+      const grammok = await grammBecsles(env.AI, sorok);
+      return grammok ? valasz({ grammok }) : valasz({ hiba: 'nem-sikerult' }, 502);
+    }
     if (ut === '/forditas' && keres.method === 'POST') {
       if (!env.AI) return valasz({ hiba: 'nincs-ai' }, 500);
       let test;
       try { test = await keres.json(); } catch { return valasz({ hiba: 'rossz-keres' }, 400); }
       const szovegek = (x, max) => (Array.isArray(x) ? x.slice(0, max).map((y) => String(y).slice(0, 800)) : []);
-      const recept = { nev: String(test.nev || '').slice(0, 200), hozzavalok: szovegek(test.hozzavalok, 80), lepesek: szovegek(test.lepesek, 60) };
-      if (test.nyelv !== 'sr' || !recept.nev) return valasz({ hiba: 'rossz-keres' }, 400);
-      const kesz = await forditSzerbre(env.AI, recept);
+      const recept = { nev: String(test.nev || '').slice(0, 200), ido: String(test.ido || '').slice(0, 80), hozzavalok: szovegek(test.hozzavalok, 80), lepesek: szovegek(test.lepesek, 60) };
+      if (!['sr', 'hu'].includes(test.nyelv) || !recept.nev) return valasz({ hiba: 'rossz-keres' }, 400);
+      const kesz = await forditRecept(env.AI, recept, test.nyelv);
       return kesz ? valasz(kesz) : valasz({ hiba: 'nem-sikerult' }, 502);
     }
     if (ut === '/meghivo/bevalt' && keres.method === 'POST') {
@@ -101,7 +110,13 @@ export default {
         return valasz({ hiba: 'rossz-kep' }, 400);
       }
       const recept = await receptKeprol(env.AI, test.kep);
-      return recept ? valasz(recept) : valasz({ hiba: 'nem-talalhato' }, 422);
+      if (!recept) return valasz({ hiba: 'nem-talalhato' }, 422);
+      const kertNyelv = test.nyelv === 'sr' ? 'sr' : 'hu';
+      if (recept.eredetiNyelv !== kertNyelv) {
+        const masik = await forditRecept(env.AI, recept, kertNyelv);
+        if (masik) recept.masik = { nyelv: kertNyelv, ...masik }; else recept.forditasSikertelen = true;
+      }
+      return valasz(recept);
     }
 
     if (keres.method === 'POST' && (ut === '/cimke' || ut === '/becsles')) {
@@ -146,10 +161,12 @@ export default {
     if (recept && host.endsWith('streetkitchen.hu')) streetKitchenKiegeszit(recept, html);
     if (!recept || !recept.hozzavalok.length) return valasz({ hiba: 'nem-talalhato' }, 422);
 
-    const forditando = env.AI && FORDITANDO_OLDALAK.some((d) => host === d || host.endsWith('.' + d));
-    const forditas = forditando
-      ? forditMagyarra(env.AI, recept)
-      : null;
+    // The recipe stays in its own language; a translation is made now only if the person importing it
+    // reads the other language. The app fills in the second language later, in the background.
+    const forrasNyelv = FORDITANDO_OLDALAK.some((d) => host === d || host.endsWith('.' + d)) ? 'sr' : 'hu';
+    if (forrasNyelv === 'sr') latinra(recept);
+    const kertNyelv = new URL(keres.url).searchParams.get('nyelv') === 'sr' ? 'sr' : 'hu';
+    const forditas = env.AI && forrasNyelv !== kertNyelv ? forditRecept(env.AI, recept, kertNyelv) : null;
 
     recept.kep = recept.kepUrl ? await kepAdatkent(recept.kepUrl) : null;
     if (!recept.kep) {
@@ -159,17 +176,10 @@ export default {
     delete recept.kepUrl;
     recept.forras = cel.href;
 
-    // The original lines are kept for ingredient matching (the Serbian keywords are reliable);
-    // the translated ones are what Mom reads.
+    recept.eredetiNyelv = forrasNyelv;
     if (forditas) {
-      const magyar = await forditas;
-      if (magyar) {
-        recept.eredetiHozzavalok = recept.hozzavalok;
-        recept.eredetiNev = recept.nev;
-        Object.assign(recept, magyar, { forditva: true });
-      } else {
-        recept.forditasSikertelen = true;
-      }
+      const masik = await forditas;
+      if (masik) recept.masik = { nyelv: kertNyelv, ...masik }; else recept.forditasSikertelen = true;
     }
     return valasz(recept);
   },
@@ -369,11 +379,11 @@ function adagszoveg(y) {
 
 const FORDITASI_UTASITAS = `Szerb, horvát vagy bosnyák receptet fordítasz magyarra egy idős magyar háziasszonynak.
 Szabályok:
-- Természetes, egyszerű magyar konyhanyelv. A hozzávalóknál a szokásos magyar elnevezést használd (pavlaka és kisela pavlaka = tejföl, slatka pavlaka = tejszín, pohovani/pohovano = rántott, beli luk u prahu = fokhagymapor, mladi sir = túró, kačkavalj = sajt, aleva paprika = pirospaprika, pečurke = gomba, mirođija = kapor, prezle = zsemlemorzsa, ulje = olaj).
+- Természetes, egyszerű magyar konyhanyelv. A hozzávalóknál a szokásos magyar elnevezést használd (pavlaka és kisela pavlaka = tejföl, slatka pavlaka = tejszín, pohovani/pohovano = rántott, beli luk u prahu = fokhagymapor, mladi sir = túró, kačkavalj = sajt, aleva paprika = pirospaprika, pečurke = gomba, mirođija = kapor, prezle = zsemlemorzsa, ulje = olaj, brašno / brašno tip 400 / tip 500 = liszt vagy finomliszt (nem tönköly), oštro brašno = rétesliszt).
 - Mértékegységek: kašika/žlica = evőkanál, kašičica/žličica = teáskanál, šolja = bögre, prstohvat = csipet, čen = gerezd, glavica = fej, kesica = csomag. A számokat és a g/ml/dl/kg értékeket változatlanul hagyd.
 - "po ukusu" és "po želji" = "ízlés szerint", a sor elejére írva (pl. "ízlés szerint só").
 - A lépéseket tegezve, kijelentő módban írd, ahogy egy szakácskönyv: "A hagymát apróra vágod, és üvegesre párolod."
-- Vigyázz a hamis barátokra: višnja = meggy, trešnja = cseresznye, kupus = káposzta, kiseli kupus = savanyú káposzta, tikvica = cukkini, plavi patlidžan = padlizsán, boranija/mahune = zöldbab, kukuruz = kukorica, cimet = fahéj, kvasac = élesztő, prašak za pecivo = sütőpor, šlag = tejszínhab.
+- Vigyázz a hamis barátokra: višnja = meggy, trešnja = cseresznye, kupus = káposzta, kiseli kupus = savanyú káposzta, tikvica = cukkini, plavi patlidžan = padlizsán, boranija/mahune = zöldbab, kukuruz = kukorica, cimet = fahéj, pahuljice / ovsene pahuljice = zabpehely, kvasac = élesztő, prašak za pecivo = sütőpor, šlag = tejszínhab.
 - Márkanevet (pl. Dolcela, Lino Lada) hagyd meg, de a mögötte álló köznevet fordítsd le magyarra (pl. "Dolcela Cimet rolice" = "Dolcela fahéjas csiga"). Angol szót ne használj.
 - Pontosan ugyanannyi elem legyen minden listában, ugyanabban a sorrendben.
 Csak a JSON-t add vissza, ugyanazokkal a kulcsokkal, amiket kaptál (pl. {"nev": "...", "hozzavalok": ["..."]} vagy {"lepesek": ["..."]}).`;
@@ -382,17 +392,26 @@ const LEPES_CSOMAG = 3;
 
 // Translates in parallel pieces (name + ingredients, then the steps three at a time),
 // so a long recipe takes about as long as one short piece. Any failed piece → keep the original.
-async function forditMagyarra(ai, recept) {
-  const darabok = [{ nev: recept.nev, hozzavalok: recept.hozzavalok }];
+// cel: 'hu' (from Serbian/Croatian) or 'sr' (from Hungarian). The free-text time goes along with the name.
+async function forditRecept(ai, recept, cel) {
+  const utasitas = cel === 'sr' ? SZERB_UTASITAS : FORDITASI_UTASITAS;
+  const darabok = [recept.ido ? { nev: recept.nev, ido: recept.ido } : { nev: recept.nev }];
+  if (recept.hozzavalok.length) darabok.push({ hozzavalok: recept.hozzavalok });
   for (let i = 0; i < recept.lepesek.length; i += LEPES_CSOMAG) {
     darabok.push({ lepesek: recept.lepesek.slice(i, i + LEPES_CSOMAG) });
   }
   try {
-    const kesz = await Promise.all(darabok.map((d) => forditDarab(ai, d)));
+    // Steps are translated in small pieces; the name and ingredients go along so a short step isn't guessed
+    // out of context ("pahuljice" are oat flakes here, not pancakes).
+    const kontextus = `
+
+The whole recipe, for context only (do not translate it again): ${recept.nev}. Ingredients: ${recept.hozzavalok.join('; ')}`;
+    const kesz = await Promise.all(darabok.map((d) => forditDarab(ai, d, utasitas + kontextus)));
     return {
       nev: tisztit(kesz[0].nev),
-      hozzavalok: kesz[0].hozzavalok.map(tisztit),
-      lepesek: kesz.slice(1).flatMap((d) => d.lepesek).map(tisztit),
+      ...(recept.ido ? { ido: tisztit(kesz[0].ido) } : {}),
+      hozzavalok: kesz.flatMap((d) => d.hozzavalok || []).map(tisztit),
+      lepesek: kesz.flatMap((d) => d.lepesek || []).map(tisztit),
     };
   } catch {
     return null;
@@ -402,7 +421,7 @@ async function forditMagyarra(ai, recept) {
 // Family recipes are kept in Hungarian; Serbian-speaking family members see this translation.
 const SZERB_UTASITAS = `You translate Hungarian home-cooking recipes into Serbian (Latin script, ekavian) for a young Serbian home cook.
 Rules:
-- Natural, simple Serbian kitchen language. Use the usual Serbian names: tejföl = kisela pavlaka, tejszín = slatka pavlaka, túró = mladi sir, trappista/sajt = kačkavalj, pirospaprika = aleva paprika, zsemlemorzsa = prezle, vöröshagyma = crni luk, fokhagyma = beli luk, krumpli = krompir, rántás = zaprška, nokedli = galuške, pörkölt = perkelt, főzelék = varivo, darált hús = mleveno meso, sütőpor = prašak za pecivo, élesztő = kvasac, vaníliás cukor = vanilin šećer, porcukor = šećer u prahu, meggy = višnje, cukkini = tikvice.
+- Natural, simple Serbian kitchen language. Use the usual Serbian names: tejföl = kisela pavlaka, tejszín = slatka pavlaka, túró = mladi sir, trappista/sajt = kačkavalj, pirospaprika = aleva paprika, zsemlemorzsa = prezle, vöröshagyma = crni luk, fokhagyma = beli luk, krumpli = krompir, rántás = zaprška, nokedli = galuške, pörkölt = perkelt, főzelék = varivo, darált hús = mleveno meso, sütőpor = prašak za pecivo, élesztő = kvasac, vaníliás cukor = vanilin šećer, porcukor = šećer u prahu, meggy = višnje, cukkini = tikvice, héjában = u ljusci, rakott krumpli = musaka od krompira, rántott = pohovan, pirított = propržen.
 - Units: evőkanál/ek = kašika, teáskanál/tk = kašičica, gerezd = čen, fej = glavica, csomag = kesica, csipet = prstohvat, bögre = šolja, db = kom. Convert dkg to g (multiply by 10, e.g. 25 dkg = 250 g). Keep other numbers and g/ml/dl/kg as they are.
 - "ízlés szerint" = "po ukusu", "ha van" = "ako imaš".
 - Steps: informal singular "ti" imperative, like a family cookbook: "Iseckaj luk sitno i propirjaj ga na ulju.", "Kuvaj", "Pomešaj", "Peci", "Posoli". NEVER the plural or polite -te forms (not "Iseckajte", "Kuvajte", "Razdvojte"), and never an infinitive ("Peći"). Hungarian steps written in first person ("főzöm", "keverem") also become this imperative.
@@ -411,25 +430,6 @@ Rules:
 - Keep brand names. Do not use English words.
 - Every list must have exactly as many items as in the input, in the same order.
 Return only the JSON, with the same keys you received (e.g. {"nev": "...", "hozzavalok": ["..."]} or {"lepesek": ["..."]}).`;
-
-// The name goes on its own, so an ingredient line can't leak into it.
-async function forditSzerbre(ai, recept) {
-  const darabok = [{ nev: recept.nev }];
-  if (recept.hozzavalok.length) darabok.push({ hozzavalok: recept.hozzavalok });
-  for (let i = 0; i < recept.lepesek.length; i += LEPES_CSOMAG) {
-    darabok.push({ lepesek: recept.lepesek.slice(i, i + LEPES_CSOMAG) });
-  }
-  try {
-    const kesz = await Promise.all(darabok.map((d) => forditDarab(ai, d, SZERB_UTASITAS)));
-    return {
-      nev: tisztit(kesz[0].nev),
-      hozzavalok: kesz.flatMap((d) => d.hozzavalok || []).map(tisztit),
-      lepesek: kesz.flatMap((d) => d.lepesek || []).map(tisztit),
-    };
-  } catch {
-    return null;
-  }
-}
 
 async function forditDarab(ai, darab, utasitas = FORDITASI_UTASITAS) {
   const valasz = await Promise.race([
@@ -461,15 +461,17 @@ async function forditDarab(ai, darab, utasitas = FORDITASI_UTASITAS) {
 
 const RECEPT_KEP_UTASITAS = `You read a recipe from an image: an Instagram or TikTok screenshot with the recipe in the caption,
 a photographed cookbook or magazine page, or handwritten notes. The text may be Hungarian, Serbian (Latin or Cyrillic),
-Croatian or English. Write everything in natural, simple Hungarian, as a Hungarian cookbook would.
-- Ingredients: one per line, keep the amounts and units ("2 db tojás", "30 g fehérjepor", "1 evőkanál méz").
-  Convert: kašika/žlica = evőkanál, kašičica/žličica = teáskanál, šolja = bögre, scoop = adag (keep the grams if given).
-  False friends: višnja = meggy, trešnja = cseresznye, pavlaka = tejföl, slatka pavlaka = tejszín.
-- Steps: one action per line, addressing the reader informally ("Összekevered a tojást a fehérjeporral.").
+Croatian or English.
+- If the recipe is in Serbian, Croatian or Bosnian: write it in Serbian, Latin script (turn Cyrillic into Latin),
+  staying close to the original wording, and set "nyelv": "sr". Steps as informal imperatives ("Pomešaj jaja s proteinom.").
+- Otherwise (Hungarian, English or anything else): write it in natural, simple Hungarian, as a Hungarian cookbook would,
+  and set "nyelv": "hu". Steps address the reader informally ("Összekevered a tojást a fehérjeporral.").
+  Hungarian units: tablespoon = evőkanál, teaspoon = teáskanál, cup = bögre, scoop = adag (keep the grams if given).
+- Ingredients: one per line, keep the amounts and units ("2 db tojás", "30 g fehérjepor" / "2 jaja", "30 g proteina").
 - Ignore hashtags, emojis, "follow me", likes and comments.
 - edes = true for cakes, desserts, sweet pastries, sweet snacks.
 Answer with JSON only:
-{"nev": "...", "adag": number or null, "ido": "e.g. 30 perc" or "", "edes": true/false, "hozzavalok": ["..."], "lepesek": ["..."]}
+{"nyelv": "hu" or "sr", "nev": "...", "adag": number or null, "ido": "e.g. 30 perc / 30 minuta" or "", "edes": true/false, "hozzavalok": ["..."], "lepesek": ["..."]}
 If there is no recipe in the image, answer {"hiba": "nincs-recept"}.`;
 
 async function receptKeprol(ai, kep) {
@@ -496,19 +498,44 @@ async function receptKeprol(ai, kep) {
     const lepesSzoveg = (json.lepesek || []).join(' ');
     const talalt = lepesSzoveg.match(/(\d{1,2})\s*(darab|szelet|adag|rész|komad|porcij|parč)/i);
     const adag = Number(json.adag) > 0 ? Math.round(Number(json.adag)) : (talalt ? +talalt[1] : null);
+    const nyelv = json.nyelv === 'sr' ? 'sr' : 'hu';
     const recept = {
+      eredetiNyelv: nyelv,
       nev: tisztit(json.nev) || 'Recept',
-      ido: tisztit(json.ido),
+      ido: nyelv === 'sr' ? magyarIdo(tisztit(json.ido)) : tisztit(json.ido),
       adag: adag ? `${adag} adag` : '',
       adagSzam: adag,
       edes: Boolean(json.edes),
       hozzavalok: json.hozzavalok.map(tisztit).filter(Boolean),
       lepesek: rovidLepesek((json.lepesek || []).map(tisztit).filter(Boolean)),
     };
+    if (nyelv === 'sr') return latinra(recept);
     return await helyesiras(ai, recept);
   } catch {
     return null;
   }
+}
+
+// Times are kept in Hungarian form ("30 perc"); the app shows them in either language.
+function magyarIdo(s) {
+  return String(s || '').replace(/(\d+(?:[.,]\d+)?)\s*(minuta|minut|min)\b\.?/gi, '$1 perc')
+    .replace(/(\d+(?:[.,]\d+)?)\s*(sati|sata|sat|h)\b/gi, '$1 óra');
+}
+
+// Serbian sites and screenshots are sometimes in Cyrillic; the app shows Serbian in Latin script.
+const CIRILL = { а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', ђ: 'đ', е: 'e', ж: 'ž', з: 'z', и: 'i', ј: 'j', к: 'k', л: 'l', љ: 'lj', м: 'm', н: 'n', њ: 'nj', о: 'o', п: 'p', р: 'r', с: 's', т: 't', ћ: 'ć', у: 'u', ф: 'f', х: 'h', ц: 'c', ч: 'č', џ: 'dž', ш: 'š' };
+function latinSzoveg(s) {
+  return String(s).replace(/[\u0400-\u04FF]/g, (b) => {
+    const k = b.toLowerCase();
+    const l = CIRILL[k] ?? b;
+    return b === k ? l : l.charAt(0).toUpperCase() + l.slice(1);
+  });
+}
+function latinra(recept) {
+  recept.nev = latinSzoveg(recept.nev);
+  recept.hozzavalok = recept.hozzavalok.map(latinSzoveg);
+  recept.lepesek = recept.lepesek.map(latinSzoveg);
+  return recept;
 }
 
 // The image model reads well but slips in Hungarian spelling without "thinking" ("lis" for liszt),
@@ -591,6 +618,12 @@ async function szinkron(db, csalad, test) {
     const adat = v.torolve ? null : JSON.stringify(v.adat ?? null);
     if (adat && adat.length > 1_500_000) continue;
     const regi = await db.prepare('SELECT torolve FROM elemek WHERE csalad = ? AND tipus = ? AND id = ?').bind(csalad, v.tipus, v.id).first();
+    // A phone filling in a translation or grams: update the content, but keep who changed it last and log nothing.
+    if (v.csendes && regi && !regi.torolve && adat) {
+      utasitasok.push(db.prepare('UPDATE elemek SET adat = ?, modositva = ? WHERE csalad = ? AND tipus = ? AND id = ?')
+        .bind(adat, most, csalad, v.tipus, v.id));
+      continue;
+    }
     utasitasok.push(db.prepare(`
       INSERT INTO elemek (csalad, tipus, id, adat, torolve, letrehozta, letrehozva, modositotta, modositva)
       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?6, ?7)
@@ -685,6 +718,40 @@ async function vonalkodKeres(kod) {
   const kcal = n['energy-kcal_100g'] ?? (n.energy_100g != null ? n.energy_100g / 4.184 : undefined);
   const ertek = tapErtek({ kcal, feherje: n.proteins_100g, zsir: n.fat_100g, szenhidrat: n.carbohydrates_100g });
   return ertek ? { nev, ...ertek } : (nev ? { nev } : null);
+}
+
+/* ---------- grams per ingredient line (imported recipes) ---------- */
+
+const GRAMM_UTASITAS = `For each ingredient line of a recipe (Hungarian or Serbian), give the weight in grams of the amount written on that line.
+Typical weights: 1 egg = 55 g (tojás, jaje), 1 medium onion = 120 g (fej hagyma, glavica luka), 1 garlic clove = 5 g (gerezd, čen),
+1 tablespoon (evőkanál, ek, kašika) = 10 g oil or flour, 15 g sugar, honey or sour cream; 1 teaspoon (teáskanál, tk, kašičica) = 5 g,
+1 dl liquid = 100 g, 1 cup (bögre, šolja) = 140 g flour, 200 g sugar or 240 g liquid, 1 baking powder or vanilla sugar packet (csomag, kesica) = 12 g / 8 g,
+1 dkg = 10 g, 1 medium potato = 150 g, 1 carrot = 80 g, 1 pepper = 100 g, 1 tomato = 120 g, 1 banana = 120 g, 1 apple = 180 g, 1 slice of bread = 40 g, 1 scoop protein = 30 g.
+Salt, pepper and spices with no amount ("ízlés szerint", "po ukusu", "egy csipet", "prstohvat"): 0.
+If the line has no amount and you can't tell (e.g. "olaj a sütéshez", "ulje za prženje"): null.
+Answer with JSON only: {"grammok": [one number or null per line, in the same order]}`;
+
+async function grammBecsles(ai, sorok) {
+  try {
+    const valasz = await Promise.race([
+      ai.run(BECSLO_MODELL, {
+        messages: [{ role: 'system', content: GRAMM_UTASITAS }, { role: 'user', content: JSON.stringify(sorok) }],
+        max_tokens: 800,
+        temperature: 0,
+        chat_template_kwargs: { enable_thinking: false },
+      }),
+      new Promise((_, nem) => setTimeout(() => nem(new Error('idotullepes')), 30000)),
+    ]);
+    const szoveg = aiSzoveg(valasz);
+    const j = JSON.parse(szoveg.slice(szoveg.indexOf('{'), szoveg.lastIndexOf('}') + 1));
+    if (!Array.isArray(j.grammok) || j.grammok.length !== sorok.length) return null;
+    return j.grammok.map((g) => {
+      const n = typeof g === 'number' ? g : parseFloat(String(g ?? '').replace(',', '.'));
+      return Number.isFinite(n) && n >= 0 && n <= 5000 ? Math.round(n) : null;
+    });
+  } catch {
+    return null;
+  }
 }
 
 /* ---------- nutrition: package labels and estimates ---------- */

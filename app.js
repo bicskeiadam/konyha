@@ -81,8 +81,9 @@ function tapertek(recept) {
   const kimaradt = [];
   const benne = [];
   for (const h of sorok) {
-    if (h.opcionalis && !itthon.has(h.id)) { kimaradt.push(nevE(h)); continue; }
-    if (h.opcionalis) benne.push(nevE(h));
+    // "To taste" lines weigh nothing, so they're not worth a note either way.
+    if (h.opcionalis && h.g > 0 && !vanItthon(h.id)) { kimaradt.push(nevE(h)); continue; }
+    if (h.opcionalis && h.g > 0) benne.push(nevE(h));
     const [kcal, feherje, zsir, szenhidrat] = adat.tapanyagok[h.t || h.id] || [0, 0, 0, 0];
     const x = h.g / 100;
     osszes.kcal += kcal * x;
@@ -486,70 +487,128 @@ function rendezettReceptek() {
     .sort((a, b) => a.ismeretlen - b.ismeretlen || a.hiany.length - b.hiany.length || a.r.nev.localeCompare(b.r.nev, NYELV));
 }
 
-/* ---------- Family recipes in Serbian ---------- */
+/* ---------- Family recipes in both languages ---------- */
 
-// Family recipes are stored in Hungarian (Mom reads them). In Serbian mode the reader translates
-// each one once; the translation is kept per recipe and redone only if the recipe changes.
-const FORDITAS_KULCS = 'konyha.forditasok';
-let forditasok = JSON.parse(localStorage.getItem(FORDITAS_KULCS) || '{}');
-const forditasSor = [];
-const forditasHiba = new Set();
-let forditasFut = false;
+// Every family recipe is kept in Hungarian (the top-level fields: what Mom reads) and in Serbian (r.sr).
+// The language it was written in is r.eredetiNyelv; that text is the original and is never translated back.
+// Whatever is still missing - the other language, or grams for the nutrition table - the first phone
+// that is online fills in, once, and shares with the family (quietly: it doesn't show in "Mi változott?").
+//   r.sr:         { nev, ido, hozzavalok: [the text lines, in order], lepesek }
+//   r.huHianyzik: written in Serbian, Hungarian not ready yet (the top-level fields still hold the Serbian text)
+//   r.grammKesz:  grams were estimated for the text lines
+const potlasSor = [];
+const potlasHiba = new Set();
+let potlasFut = false;
 
-function forditasHash(r) {
-  const s = JSON.stringify([r.nev, r.hozzavalok.map((h) => h.szoveg ?? ''), r.lepesek]);
-  let h = 5381;
-  for (let i = 0; i < s.length; i++) h = (Math.imul(h, 33) ^ s.charCodeAt(i)) | 0;
-  return String(h >>> 0);
+const szovegSorok = (r) => r.hozzavalok.filter((h) => h.szoveg != null).map((h) => h.szoveg);
+
+function potlasKell(r) {
+  return r.sajat && (r.huHianyzik || !r.sr || (!r.grammKesz && r.hozzavalok.some((h) => h.szoveg != null && h.g == null)));
 }
 
 // The recipe as the screen should show it. Built-in recipes are already in the screen's language.
 function nezet(r) {
-  if (NYELV !== 'sr' || !r.sajat) return r;
-  const f = forditasok[r.id];
-  const kesz = f && f.h === forditasHash(r);
-  if (!kesz) forditasKer(r);
+  if (!r.sajat) return r;
+  if (potlasKell(r)) potlasKer(r);
+  if (NYELV !== 'sr') return r.huHianyzik ? { ...r, forditasFolyamatban: true } : r;
+  const s = r.sr || (r.huHianyzik ? { nev: r.nev, ido: r.ido, hozzavalok: szovegSorok(r), lepesek: r.lepesek } : null);
+  const mennyiseg = (h) => ({ ...h, menny: mennySr(h.menny), mennyHu: h.menny });
+  if (!s) {
+    return { ...r, ido: idoSr(r.ido), adag: adagSr(r.adag), hozzavalok: r.hozzavalok.map((h) => (h.szoveg != null ? h : mennyiseg(h))), forditasFolyamatban: true };
+  }
   let i = 0;
   return {
     ...r,
-    nev: kesz ? f.nev : r.nev,
-    ido: idoSr(r.ido),
+    nev: s.nev || r.nev,
+    ido: idoSr(s.ido || r.ido),
     adag: adagSr(r.adag),
-    lepesek: kesz ? f.lepesek : r.lepesek,
-    hozzavalok: r.hozzavalok.map((h) => (h.szoveg != null
-      ? { ...h, szoveg: kesz ? (f.hozzavalok[i++] ?? h.szoveg) : h.szoveg }
-      : { ...h, menny: mennySr(h.menny), mennyHu: h.menny })),
-    forditasFolyamatban: !kesz,
+    lepesek: s.lepesek || r.lepesek,
+    hozzavalok: r.hozzavalok.map((h) => (h.szoveg != null ? { ...h, szoveg: s.hozzavalok?.[i++] ?? h.szoveg } : mennyiseg(h))),
   };
 }
 
-function forditasKer(r) {
-  if (!navigator.onLine || forditasHiba.has(r.id) || forditasSor.some((x) => x.id === r.id)) return;
-  forditasSor.push(r);
-  if (!forditasFut) forditasFuttat();
+function potlasKer(r) {
+  if (!navigator.onLine || potlasHiba.has(r.id) || potlasSor.some((x) => x.id === r.id)) return;
+  potlasSor.push(r.id);
+  if (!potlasFut) potlasFuttat();
+}
+
+function potlasMind() {
+  for (const r of sajatReceptek) if (potlasKell(r)) potlasKer(r);
+}
+
+async function olvasoPost(ut, test) {
+  const v = await fetch(OLVASO_URL + ut, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(test) });
+  const j = await v.json();
+  if (!v.ok || j.hiba) throw new Error(j.hiba || String(v.status));
+  return j;
+}
+
+// Fills in what one recipe is missing. Each part is tried on its own, so a failed translation
+// doesn't throw away the grams (or the other way round).
+async function potlas(r) {
+  const uj = { ...r };
+  let valtozott = false;
+  let hiba = false;
+  const lepj = async (fn) => { try { await fn(); valtozott = true; } catch (_) { hiba = true; } };
+
+  if (uj.huHianyzik) {
+    await lepj(async () => {
+      const forras = uj.sr || { nev: uj.nev, ido: uj.ido, hozzavalok: szovegSorok(uj), lepesek: uj.lepesek };
+      const j = await olvasoPost('forditas', { nyelv: 'hu', ...forras });
+      let i = 0;
+      Object.assign(uj, {
+        sr: forras,
+        nev: j.nev,
+        ido: j.ido || uj.ido,
+        lepesek: j.lepesek,
+        hozzavalok: uj.hozzavalok.map((h) => (h.szoveg != null ? { ...h, szoveg: j.hozzavalok[i++] ?? h.szoveg } : h)),
+      });
+      delete uj.huHianyzik;
+    });
+  }
+  if (!uj.sr && !uj.huHianyzik) {
+    await lepj(async () => {
+      const j = await olvasoPost('forditas', { nyelv: 'sr', nev: uj.nev, ido: uj.ido, hozzavalok: szovegSorok(uj), lepesek: uj.lepesek });
+      uj.sr = { nev: j.nev, ido: j.ido || '', hozzavalok: j.hozzavalok, lepesek: j.lepesek };
+    });
+  }
+  if (!uj.grammKesz) {
+    await lepj(async () => {
+      const sorok = szovegSorok(uj);
+      if (sorok.length) {
+        const { grammok } = await olvasoPost('grammok', { sorok });
+        let i = 0;
+        uj.hozzavalok = uj.hozzavalok.map((h) => {
+          if (h.szoveg == null) return h;
+          const g = grammok[i++];
+          return h.g == null && g != null ? { ...h, g } : h;
+        });
+      }
+      uj.grammKesz = true;
+    });
+  }
+  return { uj, valtozott, hiba };
 }
 
 // One recipe at a time, so a long family list doesn't flood the reader.
-async function forditasFuttat() {
-  forditasFut = true;
-  while (forditasSor.length) {
-    const r = forditasSor.shift();
-    try {
-      const v = await fetch(OLVASO_URL + 'forditas', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ nyelv: 'sr', nev: r.nev, hozzavalok: r.hozzavalok.filter((h) => h.szoveg != null).map((h) => h.szoveg), lepesek: r.lepesek }),
-      });
-      const j = await v.json();
-      if (!v.ok || j.hiba) throw new Error();
-      forditasok[r.id] = { h: forditasHash(r), nev: j.nev, hozzavalok: j.hozzavalok, lepesek: j.lepesek };
-      localStorage.setItem(FORDITAS_KULCS, JSON.stringify(forditasok));
-      if (!/^#\/(kezi|uj|hozzavalo)/.test(location.hash)) rajzolMarad();
-    } catch (_) {
-      forditasHiba.add(r.id);
-    }
+async function potlasFuttat() {
+  potlasFut = true;
+  while (potlasSor.length) {
+    const id = potlasSor.shift();
+    const r = sajatReceptek.find((x) => x.id === id);
+    if (!r || !potlasKell(r)) continue;
+    const { uj, valtozott, hiba } = await potlas(r);
+    if (hiba) potlasHiba.add(id);
+    if (!valtozott) continue;
+    const i = sajatReceptek.findIndex((x) => x.id === id);
+    if (i < 0) continue;
+    sajatReceptek[i] = { ...uj, kep: sajatReceptek[i].kep };
+    await Tar.ment(sajatReceptek[i]);
+    jelol('recept', id, uj.nev, true);
+    if (!/^#\/(kezi|uj|hozzavalo)/.test(location.hash)) rajzolMarad();
   }
-  forditasFut = false;
+  potlasFut = false;
 }
 
 /* ---------- Storage on the phone (IndexedDB) for imported recipes ---------- */
@@ -638,11 +697,18 @@ let utolsoSzinkronHiba = '';
 const sajatNev = () => (csalad && csalad.nev) || '';
 
 // Marks a local change for sending. The content is read fresh when it is sent, so marking twice is harmless.
-function jelol(tipus, id, cimke) {
+// "csendes": a filled-in translation or grams - sent like any change, but not logged as someone's edit.
+function jelol(tipus, id, cimke, csendes = false) {
   const most = Date.now();
-  if (!kuldendo.some((k) => k.tipus === tipus && k.id === id)) kuldendo.push({ tipus, id, cimke: cimke || '' });
+  const meglevo = kuldendo.find((k) => k.tipus === tipus && k.id === id);
+  if (!meglevo) kuldendo.push({ tipus, id, cimke: cimke || '', ...(csendes ? { csendes: true } : {}) });
+  else if (!csendes) delete meglevo.csendes;
   localStorage.setItem(KULDENDO_KULCS, JSON.stringify(kuldendo));
   const m = meta[`${tipus}:${id}`];
+  if (csendes && m) {
+    if (csalad) { clearTimeout(szinkronIdozito); szinkronIdozito = setTimeout(szinkronizal, 1500); }
+    return;
+  }
   meta[`${tipus}:${id}`] = m
     ? { ...m, modositotta: sajatNev(), modositva: most }
     : { letrehozta: sajatNev(), letrehozva: most, modositotta: sajatNev(), modositva: most };
@@ -706,7 +772,7 @@ async function szinkronizal() {
       const v = await valasz.json();
       kuldendo = kuldendo.filter((k) => !csomag.includes(k));
       localStorage.setItem(KULDENDO_KULCS, JSON.stringify(kuldendo));
-      if (await alkalmaz(v.elemek)) valtozott = true;
+      if (await alkalmaz(v.elemek)) { valtozott = true; potlasMind(); }
       localStorage.setItem(OTA_KULCS, String(v.most));
       utolsoSzinkronHiba = '';
       if (!kuldendo.length) break;
@@ -780,7 +846,7 @@ function szerzoSor(tipus, id) {
   return s;
 }
 
-window.addEventListener('online', () => szinkronizal());
+window.addEventListener('online', () => { szinkronizal(); potlasMind(); });
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') szinkronizal(); });
 
 /* ---------- Screens ---------- */
@@ -816,7 +882,7 @@ function keresTalal(r, szoveg) {
   if (!szavak.length) return true;
   const miben = window.Illeszto.normal([
     r.nev,
-    nezet(r).nev,
+    r.sr?.nev || '',
     ...r.hozzavalok.map((h) => (h.szoveg != null ? h.szoveg : hozzavaloById[h.id]?.nev || '')),
   ].join(' '));
   return szavak.every((w) => miben.includes(w));
@@ -1579,7 +1645,14 @@ async function keziMentes(gomb) {
       : { szoveg: s.szoveg, id: illeszt(s.szoveg) || null })),
     kep: k.kepBlob,
     hozzaadva: new Date().toISOString(),
+    eredetiNyelv: NYELV,
+    grammKesz: true,
   };
+  // Typed in Serbian: that is the Serbian text; the Hungarian is filled in in the background.
+  if (NYELV === 'sr') {
+    uj.huHianyzik = true;
+    uj.sr = { nev: uj.nev, ido: uj.ido, hozzavalok: szovegSorok(uj), lepesek: uj.lepesek };
+  }
   await Tar.ment(uj);
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
   if (uj.kep) kepUrlek[uj.id] = k.kepUrl;
@@ -1685,7 +1758,7 @@ function taperTabla(r) {
     sr ? '' : r.megj,
     t.benne.length ? (sr ? `Uračunato: ${t.benne.join(', ')}.` : `Benne van: ${t.benne.join(', ')}.`) : '',
     t.kimaradt.length ? (sr ? `Nije uračunato: ${t.kimaradt.join(', ')} (nije označeno da imaš).` : `Nincs benne: ${t.kimaradt.join(', ')} (nincs bepipálva, hogy itthon van).`) : '',
-    t.nemSzamolt.length ? (sr ? `Bez količine, pa nije uračunato: ${t.nemSzamolt.join(', ')}.` : `Mennyiség nélkül, ezért nincs benne: ${t.nemSzamolt.join(', ')}.`) : '',
+    t.nemSzamolt.length ? (sr ? `Nije uračunato (nema količine ili nije na listi sastojaka): ${t.nemSzamolt.join(', ')}.` : `Nincs benne (nincs mennyisége, vagy nincs a hozzávalók listájában): ${t.nemSzamolt.join(', ')}.`) : '',
   ].filter(Boolean).map(esc).join(' ');
   return `
     <div class="tapertek">
@@ -1718,7 +1791,7 @@ function receptOldal(id) {
     : `<div class="recept-fej">${receptKep(r)}<div><h1>${esc(r.nev)}</h1>${info ? `<p class="meta">${info}</p>` : ''}</div></div>`;
 
   const forras = r.sajat && r.forras ? `
-    <p class="forras">${ikon('link')}<span>${r.forditva ? 'Magyarra fordítva. Eredeti recept' : 'Forrás'}: <a href="${esc(r.forras)}" target="_blank" rel="noopener">${esc(new URL(r.forras).hostname.replace(/^www\./, ''))}</a></span></p>` : '';
+    <p class="forras">${ikon('link')}<span>${(r.eredetiNyelv || (r.forditva ? 'sr' : 'hu')) !== NYELV ? 'Eredeti recept' : 'Forrás'}: <a href="${esc(r.forras)}" target="_blank" rel="noopener">${esc(new URL(r.forras).hostname.replace(/^www\./, ''))}</a></span></p>` : '';
   const szerzo = r.sajat ? szerzoSor('recept', r.id) : '';
   const lab = `
     ${szerzo ? `<p class="forras">${ikon('user')}<span>${esc(szerzo)}</span></p>` : ''}
@@ -1771,25 +1844,16 @@ async function kepbolOlvas(fajl) {
   try {
     const blob = await kicsinyit(ideiglenes, 1600);
     const v = await (await fetch(OLVASO_URL + 'kepbol', {
-      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kep: await blobbolAdat(blob) }),
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kep: await blobbolAdat(blob), nyelv: NYELV }),
     })).json();
     if (v.hiba) {
       kepbol = { allapot: 'hiba', hiba: 'Ezen a képen nem találtam receptet. Próbáld élesebb képpel, úgy, hogy az egész recept látszódjon.' };
       return rajzolMarad();
     }
     kepbol = { allapot: 'ures', hiba: '' };
-    importalas = {
-      allapot: 'elonezet',
-      link: '',
-      hiba: '',
-      recept: {
-        nev: v.nev, ido: v.ido || '', adag: v.adag || '', adagSzam: v.adagSzam || null, edes: Boolean(v.edes), forras: null,
-        lepesek: v.lepesek,
-        hozzavalok: v.hozzavalok.map((szoveg) => ({ szoveg, id: illeszt(szoveg), opcionalis: OPCIONALIS.test(szoveg) || undefined })),
-        kepBlob: null, kepUrl: null,
-      },
-    };
+    importalas = { allapot: 'elonezet', link: '', hiba: '', recept: importReceptbol(v) };
     location.replace('#/uj');
+    importGrammok();
   } catch (_) {
     kepbol = { allapot: 'hiba', hiba: 'Most nem sikerült elérni a szolgáltatást. Próbáld újra kicsit később.' };
     rajzolMarad();
@@ -1836,11 +1900,13 @@ function ujRecept() {
   let html = `${vissza()}<h1>Új recept</h1>`;
 
   if (allapot === 'tolt') {
-    html += FORDITANDO.test(linkBelole(link))
-      ? '<p class="uzenet">Betöltöm a receptet, és lefordítom magyarra…<br>Ez fél percig is eltarthat, várj türelemmel.</p>'
+    html += FORDITANDO.test(linkBelole(link)) !== (NYELV === 'sr')
+      ? '<p class="uzenet">Betöltöm a receptet, és lefordítom…<br>Ez fél percig is eltarthat, várj türelemmel.</p>'
       : '<p class="uzenet">Egy pillanat, betöltöm a receptet…</p>';
   } else if (allapot === 'elonezet') {
-    const info = [recept.ido, recept.adag].filter(Boolean).map(esc).join(' · ');
+    const info = [idoSr(recept.ido), adagSr(recept.adag)].filter(Boolean).map(esc).join(' · ');
+    const elo = { ...recept, sajat: true, adagSzam: recept.adagSzam || parseInt(recept.adag, 10) || 4, ...(recept.edes ? { egyseg: 'szelet' } : {}) };
+    const tapResz = recept.grammFolyamatban ? '<p class="uzenet">Tápérték számolása…</p>' : taperTabla(elo);
     const sorok = recept.hozzavalok.map((h, i) => {
       const alap = h.id && hozzavaloById[h.id]?.alap;
       const ha = h.opcionalis ? opcionalisCimke(h) : '';
@@ -1857,8 +1923,8 @@ function ujRecept() {
       <label class="cimke" for="recept-nev">A recept neve</label>
       <input id="recept-nev" class="mezo" value="${esc(recept.nev)}">
       ${info ? `<p class="meta">${info}</p>` : ''}
-      ${recept.forditva ? '<p class="tipp">Magyarra fordítva. Az eredeti receptet a recept alján lévő linken találod.</p>' : ''}
-      ${recept.forditasSikertelen ? '<p class="uzenet">A fordítás most nem sikerült, ezért eredeti nyelven látod. Később újra próbálhatod.</p>' : ''}
+      ${recept.forditva ? '<p class="tipp">Lefordítva. Az eredeti szöveget is elmentem, mindkét nyelven meglesz.</p>' : ''}
+      ${recept.forditasSikertelen ? '<p class="uzenet">A fordítás most nem sikerült, ezért eredeti nyelven látod. Mentés után magától lefordítja.</p>' : ''}
       <label class="cimke" for="recept-adag">Hány adag vagy szelet?</label>
       <input id="recept-adag" class="mezo" type="number" inputmode="numeric" min="1" max="60" value="${esc(recept.adagSzam || parseInt(recept.adag, 10) || '')}">
       <p class="szuro-cim">Milyen recept?</p>
@@ -1866,6 +1932,7 @@ function ujRecept() {
         <button class="szuro" data-import-edes="0" aria-pressed="${!recept.edes}">Étel</button>
         <button class="szuro" data-import-edes="1" aria-pressed="${Boolean(recept.edes)}">Édesség</button>
       </div>
+      ${tapResz}
       <h2>Hozzávalók</h2>
       <p class="tipp">Ellenőrizd, melyik gombhoz tartozik. Ami „Nem számít”, az is látszani fog a receptben.</p>
       <ul class="hozzavalok">${sorok}</ul>
@@ -1884,8 +1951,60 @@ function ujRecept() {
   app.innerHTML = html;
 }
 
-// Serbian/Croatian sites: the reader translates these, which takes a while.
+// Serbian/Croatian sites. A recipe in the other language than the screen's is translated while loading, which takes a while.
 const FORDITANDO = /^https?:\/\/([^/]+\.)?(coolinarika\.com|recepti\.com)\//i;
+
+// What the reader sent (link or photo): the recipe in its own language, maybe also translated into the
+// screen's language ("masik"). The preview shows the screen's language; both are saved.
+function importReceptbol(v, extra = {}) {
+  const nyelv = v.eredetiNyelv === 'sr' ? 'sr' : 'hu';
+  const szovegek = { [nyelv]: { nev: v.nev, ido: v.ido || '', hozzavalok: v.hozzavalok, lepesek: v.lepesek } };
+  if (v.masik && v.masik.hozzavalok?.length === v.hozzavalok.length && v.masik.lepesek?.length === v.lepesek.length) {
+    szovegek[v.masik.nyelv] = { nev: v.masik.nev, ido: v.masik.ido || '', hozzavalok: v.masik.hozzavalok, lepesek: v.masik.lepesek };
+  }
+  const latott = szovegek[NYELV] || szovegek[nyelv];
+  return {
+    eredetiNyelv: nyelv,
+    szovegek,
+    nev: latott.nev,
+    ido: v.ido || '',
+    adag: v.adag || '',
+    adagSzam: v.adagSzam || null,
+    edes: Boolean(v.edes),
+    forras: v.forras || null,
+    forditva: Boolean(szovegek[NYELV]) && nyelv !== NYELV,
+    forditasSikertelen: Boolean(v.forditasSikertelen),
+    lepesek: latott.lepesek,
+    // Match on the original line first (its own language's keywords), then on the translation.
+    hozzavalok: v.hozzavalok.map((eredeti, i) => {
+      const masik = v.masik?.hozzavalok?.[i] || '';
+      return {
+        szoveg: latott.hozzavalok[i] ?? eredeti,
+        id: illeszt(eredeti) || illeszt(masik) || null,
+        opcionalis: OPCIONALIS.test(eredeti) || OPCIONALIS.test(masik) || undefined,
+      };
+    }),
+    kepBlob: null,
+    kepUrl: null,
+    ...extra,
+  };
+}
+
+// Grams for each ingredient line, so the preview (and the saved recipe) gets a nutrition table.
+async function importGrammok() {
+  const r = importalas.recept;
+  if (!r || !navigator.onLine) return;
+  r.grammFolyamatban = true;
+  try {
+    const { grammok } = await olvasoPost('grammok', { sorok: r.szovegek[r.eredetiNyelv].hozzavalok });
+    if (importalas.recept === r) {
+      r.hozzavalok.forEach((h, i) => { if (grammok[i] != null) h.g = grammok[i]; });
+      r.grammKesz = true;
+    }
+  } catch (_) { /* filled in after saving */ }
+  r.grammFolyamatban = false;
+  if (importalas.recept === r && location.hash.startsWith('#/uj')) rajzolMarad();
+}
 
 // Lines like "1 tk fokhagymapor (opcionális)" or "po ukusu beli luk" don't count as missing.
 const OPCIONALIS = /opcion|elhagyhat|ha van|ízlés szerint|tetszés szerint|díszítéshez|tálaláshoz|po želji|po zelji|po ukusu|po izboru|за украс|по жељи|по укусу/i;
@@ -1893,7 +2012,7 @@ const OPCIONALIS = /opcion|elhagyhat|ha van|ízlés szerint|tetszés szerint|dí
 // Built-in recipes: "ha van" (kolbász, if you have it). Imported lines: "ízlés szerint", unless the line already says so.
 function opcionalisCimke(h) {
   if (h.szoveg == null) return (h.mennyHu || h.menny) === 'ízlés szerint' ? '' : '<span class="megj">ha van</span>';
-  return /ízlés szerint/i.test(h.szoveg) ? '' : '<span class="megj">ízlés szerint</span>';
+  return /ízlés szerint|po ukusu|po želji|po zelji/i.test(h.szoveg) ? '' : '<span class="megj">ízlés szerint</span>';
 }
 
 function linkBelole(szoveg) {
@@ -1909,7 +2028,7 @@ async function betolt(link) {
 
   let valasz;
   try {
-    const v = await fetch(OLVASO_URL + '?url=' + encodeURIComponent(linkBelole(link)));
+    const v = await fetch(OLVASO_URL + '?url=' + encodeURIComponent(linkBelole(link)) + '&nyelv=' + NYELV);
     valasz = await v.json();
   } catch (_) {
     return importHiba(navigator.onLine ? 'letoltes' : 'internet', link);
@@ -1923,28 +2042,9 @@ async function betolt(link) {
     allapot: 'elonezet',
     link,
     hiba: '',
-    recept: {
-      nev: valasz.nev,
-      ido: valasz.ido || '',
-      adag: valasz.adag || '',
-      forras: valasz.forras,
-      forditva: Boolean(valasz.forditva),
-      forditasSikertelen: Boolean(valasz.forditasSikertelen),
-      edes: Boolean(valasz.edes),
-      lepesek: valasz.lepesek,
-      // Match on the original line first (reliable Serbian keywords), then on the Hungarian translation.
-      hozzavalok: valasz.hozzavalok.map((szoveg, i) => {
-        const eredeti = valasz.eredetiHozzavalok?.[i] || '';
-        return {
-          szoveg,
-          id: illeszt(eredeti) || illeszt(szoveg),
-          opcionalis: OPCIONALIS.test(eredeti) || OPCIONALIS.test(szoveg) || undefined,
-        };
-      }),
-      kepBlob,
-      kepUrl: kepBlob ? URL.createObjectURL(kepBlob) : null,
-    },
+    recept: importReceptbol(valasz, { kepBlob, kepUrl: kepBlob ? URL.createObjectURL(kepBlob) : null }),
   };
+  importGrammok();
   if (location.hash.startsWith('#/uj')) rajzol();
 }
 
@@ -1970,18 +2070,31 @@ async function mentes() {
   const r = importalas.recept;
   const nev = document.getElementById('recept-nev')?.value.trim() || r.nev;
   const adagSzam = parseInt(document.getElementById('recept-adag')?.value, 10) || r.adagSzam || null;
+  const szovegek = { ...(r.szovegek || {}) };
+  const latottNyelv = szovegek[NYELV] ? NYELV : r.eredetiNyelv;
+  if (szovegek[latottNyelv]) szovegek[latottNyelv] = { ...szovegek[latottNyelv], nev };
+  const { hu, sr } = szovegek;
+  const alap = hu || szovegek[r.eredetiNyelv] || { nev, hozzavalok: r.hozzavalok.map((h) => h.szoveg), lepesek: r.lepesek };
   const uj = {
     id: 's' + Date.now().toString(36),
     sajat: true,
-    nev,
+    nev: alap.nev,
     ido: r.ido,
     adag: adagSzam ? `${adagSzam} ${r.edes ? 'szelet' : 'adag'}` : r.adag,
     ...(adagSzam ? { adagSzam } : {}),
     ...(r.edes ? { edes: true, egyseg: 'szelet' } : {}),
     forras: r.forras,
-    ...(r.forditva ? { forditva: true } : {}),
-    lepesek: r.lepesek,
-    hozzavalok: r.hozzavalok.map(({ szoveg, id, opcionalis }) => ({ szoveg, id: id || null, ...(opcionalis ? { opcionalis } : {}) })),
+    eredetiNyelv: r.eredetiNyelv || 'hu',
+    ...(hu ? {} : { huHianyzik: true }),
+    ...(sr ? { sr: { nev: sr.nev, ido: sr.ido || '', hozzavalok: sr.hozzavalok, lepesek: sr.lepesek } } : {}),
+    ...(r.grammKesz ? { grammKesz: true } : {}),
+    lepesek: alap.lepesek,
+    hozzavalok: r.hozzavalok.map(({ id, opcionalis, g }, i) => ({
+      szoveg: alap.hozzavalok[i] ?? r.hozzavalok[i].szoveg,
+      id: id || null,
+      ...(g != null ? { g } : {}),
+      ...(opcionalis ? { opcionalis } : {}),
+    })),
     kep: r.kepBlob,
     hozzaadva: new Date().toISOString(),
   };
@@ -2329,6 +2442,9 @@ app.addEventListener('click', async (e) => {
 app.addEventListener('change', (e) => {
   if (e.target.matches('.valaszto') && importalas.recept) {
     importalas.recept.hozzavalok[+e.target.dataset.sor].id = e.target.value || null;
+    rajzolMarad();
+  } else if (e.target.id === 'recept-adag' && importalas.recept) {
+    rajzolMarad();
   } else if (e.target.matches('[data-import]') && e.target.files[0]) {
     importal(e.target.files[0]);
   } else if (e.target.matches('[data-kep]') && e.target.files[0]) {
@@ -2342,6 +2458,8 @@ app.addEventListener('change', (e) => {
 
 app.addEventListener('input', (e) => {
   if (e.target.dataset.kezi) { kezi[e.target.dataset.kezi] = e.target.value; keziPiszkozatMent(); }
+  else if (e.target.id === 'recept-nev' && importalas.recept) importalas.recept.nev = e.target.value;
+  else if (e.target.id === 'recept-adag' && importalas.recept) importalas.recept.adagSzam = parseInt(e.target.value, 10) || null;
   else if ('keziKeres' in e.target.dataset) keziKeres(e.target.value);
   else if ('receptKereso' in e.target.dataset) { keresesek[location.hash] = e.target.value; keresesFrissit(); }
   else if ('hnev' in e.target.dataset && hForm) hForm.nev = e.target.value;
@@ -2377,6 +2495,8 @@ async function indul() {
   }
   adatFrissit();
   await sajatBetolt();
+  localStorage.removeItem('konyha.forditasok');
+  potlasMind();
   if (link) betolt(link); else rajzol();
   szinkronizal();
 }
