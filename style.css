@@ -732,3 +732,18 @@ button, .fajl-gomb {
 @media (hover: hover) and (pointer: fine) {
   .szuro.szuro[aria-pressed="true"]:not(:disabled):hover { background: var(--fo-nyomott); color: #fff; }
 }
+
+/* No text selection or long-press menu when a button is held (e.g. while showing a step on a recording).
+   Typing fields and the invite code stay selectable. */
+body {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+input, textarea, [contenteditable], .meghivo-kod {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+.meghivo-kod { -webkit-user-select: all; user-select: all; }
+img { -webkit-user-drag: none; }
