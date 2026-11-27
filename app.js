@@ -776,16 +776,87 @@ function menuGomb(cel, ikonNev, cim, leiras, fo = false) {
     </button>`;
 }
 
+/* ---------- Today's ideas on the main menu ---------- */
+
+const AJANLAT_DB = 3;
+// How many times "Másik ötlet" was tapped today: { nap, eltolas }.
+const AJANLAT_KULCS = 'konyha.ajanlat';
+
+function maiNap() {
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+}
+
+// Shuffle that gives the same order all day (seeded by the date) and a new one tomorrow,
+// so the ideas don't jump around every time she opens the app. Seed: FNV-1a of the date,
+// random numbers: mulberry32.
+function napiKever(lista, nap) {
+  let mag = 2166136261;
+  for (const c of nap) mag = Math.imul(mag ^ c.charCodeAt(0), 16777619);
+  const veletlen = () => {
+    mag = (mag + 0x6D2B79F5) | 0;
+    let t = Math.imul(mag ^ (mag >>> 15), 1 | mag);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const k = [...lista];
+  for (let i = k.length - 1; i > 0; i--) {
+    const j = Math.floor(veletlen() * (i + 1));
+    [k[i], k[j]] = [k[j], k[i]];
+  }
+  return k;
+}
+
+function ajanlatEltolas() {
+  const a = JSON.parse(localStorage.getItem(AJANLAT_KULCS) || '{}');
+  return a.nap === maiNap() ? a.eltolas || 0 : 0;
+}
+
+// Savoury dishes she can cook right now first, then ones missing a single thing.
+function maiOtletek() {
+  const nap = maiNap();
+  const mind = rendezettReceptek().filter((x) => !x.r.edes && !x.ismeretlen);
+  const jeloltek = [
+    ...napiKever(mind.filter((x) => x.hiany.length === 0), nap),
+    ...napiKever(mind.filter((x) => x.hiany.length === 1), nap),
+  ];
+  if (jeloltek.length <= AJANLAT_DB) return { otletek: jeloltek, tobb: false };
+  const kezd = (ajanlatEltolas() * AJANLAT_DB) % jeloltek.length;
+  const otletek = [...jeloltek.slice(kezd), ...jeloltek.slice(0, kezd)].slice(0, AJANLAT_DB);
+  return { otletek, tobb: true };
+}
+
+function maiAjanlatResz() {
+  if (!itthon.size) {
+    return `
+      <section class="ajanlat">
+        <h2>Mai ötletek</h2>
+        <button class="uzenet ajanlat-ures" data-ugras="#/itthon">Pipáld be, mi van itthon, és itt mindig mutatok pár ötletet, mit főzhetnél ma. ${ikon('caret-right')}</button>
+      </section>`;
+  }
+  const { otletek, tobb } = maiOtletek();
+  return `
+    <section class="ajanlat">
+      <div class="ajanlat-fej">
+        <h2>Mai ötletek</h2>
+        ${tobb ? `<button class="ajanlat-masik" data-masik-otlet>${ikon('arrows-clockwise')} Másik ötlet</button>` : ''}
+      </div>
+      ${otletek.length
+        ? `<div class="lista">${otletek.map(receptKartya).join('')}</div>`
+        : `<button class="uzenet ajanlat-ures" data-ugras="#/receptek">Abból, ami be van pipálva, most nincs ötletem. Nézd meg, mihez mi hiányzik. ${ikon('caret-right')}</button>`}
+    </section>`;
+}
+
 function fomenu() {
   const tudod = tudodSzam();
   const tudodEdes = tudodSzam(true);
   app.innerHTML = `
     <div class="menu">
-      <div class="menu-fej">
+      <div class="menu-fej kompakt">
         <span class="menu-jel">${ikon('fork-knife')}</span>
         <h1>Konyha</h1>
-        <p class="alcim">Mit csinálunk ma?</p>
       </div>
+      ${maiAjanlatResz()}
       <nav class="menu-gombok" aria-label="Főmenü">
         ${menuGomb('#/itthon', 'cooking-pot', 'Mit főzzek?', tudod ? `${tudod} receptet meg tudsz főzni` : 'Pipáld be, mi van itthon', true)}
         ${menuGomb('#/receptjeim', 'book-open-text', 'Családi receptek', sajatReceptek.length ? `${sajatReceptek.length} elmentett recept` : 'Linkből, képről vagy kézzel')}
@@ -802,6 +873,7 @@ function fomenu() {
 // [icon, title, steps, where "Kipróbálom" takes her]
 const SUGO = [
   ['cooking-pot', 'Mit főzzek ma?', [
+    'A főmenü tetején mindig van 3 ötlet, mit főzhetnél ma abból, ami itthon van. Egész nap ugyanaz marad, másnap újat mutat. Ha egyik sem tetszik, koppints a <b>Másik ötlet</b> gombra.',
     'A főmenüben koppints a <b>Mit főzzek?</b> gombra.',
     'Pipáld be, ami itthon van. Só, bors, olaj mindig van, ezeket nem kell.',
     'Koppints a <b>Receptek mutatása</b> gombra.',
@@ -1996,6 +2068,9 @@ app.addEventListener('click', async (e) => {
     if (keresesek[ut] != null) delete keresesek[ut]; else keresesek[ut] = '';
     rajzolMarad();
     document.querySelector('[data-recept-kereso]')?.focus();
+  } else if ('masikOtlet' in gomb.dataset) {
+    localStorage.setItem(AJANLAT_KULCS, JSON.stringify({ nap: maiNap(), eltolas: ajanlatEltolas() + 1 }));
+    fomenu();
   } else if ('tobbi' in gomb.dataset) {
     mutasdATobbit = true;
     rajzolMarad();

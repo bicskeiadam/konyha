@@ -597,3 +597,20 @@ button:active, .fajl-gomb:active { transform: scale(.98); }
 .fejlec-gomb .i { font-size: 26px; }
 .fejlec-gomb[aria-pressed="true"] { border-color: var(--fo); color: var(--fo-szoveg); }
 .kereso-mezo { margin-top: 10px; }
+
+/* Main menu: compact header + today's ideas on top */
+.menu-fej.kompakt { display: flex; align-items: center; justify-content: center; gap: 14px; }
+.menu-fej.kompakt .menu-jel { width: 56px; height: 56px; font-size: 32px; }
+.menu-fej.kompakt h1 { margin: 0; font-size: 36px; }
+.ajanlat h2 { margin: 0; }
+.ajanlat-fej { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.ajanlat > h2 { margin-bottom: 12px; }
+.ajanlat-masik {
+  display: inline-flex; align-items: center; gap: 8px; flex: none;
+  min-height: 48px; padding: 8px 14px;
+  border: 2px solid var(--szegely); border-radius: var(--r);
+  background: var(--felulet); color: var(--szoveg); font-size: 17px; font-weight: 700;
+}
+.ajanlat-masik .i { font-size: 20px; color: var(--fo-szoveg); }
+.ajanlat-ures { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; font-size: 19px; color: var(--szoveg); }
+.ajanlat-ures .i { flex: none; font-size: 24px; margin-left: auto; color: var(--fo-szoveg); }
